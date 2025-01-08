@@ -6,7 +6,7 @@ authors = ["Ryouhei Kato <r-kato@musen.co.jp>"]
 description = "Modbus `no_std` library for embedded systems"
 
 [features]
-default = []
+default = ["std"]
 
 std = []
 alloc = []

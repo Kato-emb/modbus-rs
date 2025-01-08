@@ -1,5 +1,8 @@
 use crate::{error::ModbusApplicationError, lib::*, Result};
 
+pub mod code;
+pub mod data;
+
 const MAX_PDU_SIZE: usize = 253;
 
 #[cfg(feature = "std")]
@@ -8,47 +11,49 @@ type Data<T> = Vec<T>;
 #[cfg(not(feature = "std"))]
 type Data<T> = Vec<T, MAX_PDU_SIZE>;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Pdu {
-    pub(super) data: Data<u8>,
+    data: Data<u8>,
 }
 
-impl core::fmt::Debug for Pdu {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl Debug for Pdu {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("pdu").field("data", &self.data).finish()
     }
 }
 
-impl Default for Pdu {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Pdu {
-    pub fn new() -> Self {
-        Self {
-            #[cfg(feature = "std")]
-            data: Vec::with_capacity(MAX_PDU_SIZE),
-            #[cfg(not(feature = "std"))]
-            data: Vec::from_slice(&[0]).unwrap(),
-        }
+    pub fn new(function_code: u8) -> Result<Self> {
+        #[cfg(feature = "std")]
+        let data = {
+            let mut data = Vec::with_capacity(MAX_PDU_SIZE);
+            data.push(function_code);
+            data
+        };
+        #[cfg(not(feature = "std"))]
+        let data = {
+            let mut data = Vec::new();
+            data.push(function_code)
+                .map_err(|_| ModbusApplicationError::BufferOverflow)?;
+            data
+        };
+
+        Ok(Self { data })
     }
 
     pub fn function_code(&self) -> u8 {
         self.data[0]
     }
 
-    pub fn set_function_code(&mut self, function_code: u8) {
-        self.data[0] = function_code;
-    }
-
     pub fn data(&self) -> &[u8] {
         &self.data[1..]
     }
 
-    pub fn push(&mut self, buf: u8) -> Result<()> {
+    fn push(&mut self, buf: u8) -> Result<()> {
         if self.data.len() < MAX_PDU_SIZE {
+            #[cfg(feature = "std")]
+            self.data.push(buf);
+            #[cfg(not(feature = "std"))]
             self.data
                 .push(buf)
                 .map_err(|_| ModbusApplicationError::BufferOverflow)?;
@@ -58,13 +63,59 @@ impl Pdu {
         }
     }
 
-    pub fn extend_from_slice(&mut self, buf: &[u8]) -> Result<(), ()> {
+    pub fn put_u8(&mut self, value: u8) -> Result<()> {
+        self.push(value)
+    }
+
+    pub fn put_u16(&mut self, value: u16) -> Result<()> {
+        self.push((value >> 8) as u8)?;
+        self.push(value as u8)
+    }
+
+    pub fn put_u16_le(&mut self, value: u16) -> Result<()> {
+        self.push(value as u8)?;
+        self.push((value >> 8) as u8)
+    }
+
+    pub fn extend_from_slice(&mut self, buf: &[u8]) -> Result<()> {
         if self.data.len() + buf.len() <= MAX_PDU_SIZE {
-            self.data.extend_from_slice(buf).map_err(|_| ())?;
+            #[cfg(feature = "std")]
+            self.data.extend_from_slice(buf);
+            #[cfg(not(feature = "std"))]
+            self.data
+                .extend_from_slice(buf)
+                .map_err(|_| ModbusApplicationError::BufferOverflow)?;
             Ok(())
         } else {
-            Err(())
+            Err(ModbusApplicationError::NoSpaceLeft.into())
         }
+    }
+
+    /// Get the value from `data field` at the given index
+    pub fn get(&self, index: usize) -> Option<&u8> {
+        self.data.get(index + 1)
+    }
+
+    pub fn get_u8(&self, index: usize) -> Option<u8> {
+        self.get(index).copied()
+    }
+
+    pub fn get_u16(&self, h_idx: usize) -> Option<u16> {
+        let high = self.get(h_idx)?;
+        let low = self.get(h_idx + 1)?;
+
+        Some(u16::from_be_bytes([*high, *low]))
+    }
+
+    pub fn get_u16_le(&self, l_idx: usize) -> Option<u16> {
+        let low = self.get(l_idx)?;
+        let high = self.get(l_idx + 1)?;
+
+        Some(u16::from_le_bytes([*high, *low]))
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        &self.data
     }
 }
 
@@ -74,24 +125,49 @@ mod tests {
 
     #[test]
     fn test_model_pdu_new() {
-        let pdu = Pdu::new();
-        assert_eq!(pdu.function_code(), 0);
+        let pdu = Pdu::new(1).unwrap();
+        assert_eq!(pdu.function_code(), 1);
         assert_eq!(pdu.data(), &[]);
     }
 
     #[test]
-    fn test_model_pdu_set_function_code() {
-        let mut pdu = Pdu::new();
-        pdu.set_function_code(0x03);
-        assert_eq!(pdu.function_code(), 0x03);
+    fn test_model_pdu_data_put_u8() {
+        let mut pdu = Pdu::new(1).unwrap();
+        pdu.put_u8(0x01).unwrap();
+        pdu.put_u8(0x02).unwrap();
+        pdu.put_u8(0x03).unwrap();
+        assert_eq!(pdu.data(), &[0x01, 0x02, 0x03]);
     }
 
     #[test]
-    fn test_model_pdu_data() {
-        let mut pdu = Pdu::new();
-        pdu.push(0x01).unwrap();
-        pdu.push(0x02).unwrap();
-        pdu.push(0x03).unwrap();
+    fn test_model_pdu_data_put_u16() {
+        let mut pdu = Pdu::new(1).unwrap();
+        pdu.put_u16(0x0102).unwrap();
+        pdu.put_u16(0x0304).unwrap();
+        assert_eq!(pdu.data(), &[0x01, 0x02, 0x03, 0x04]);
+    }
+
+    #[test]
+    fn test_model_pdu_data_put_u16_le() {
+        let mut pdu = Pdu::new(1).unwrap();
+        pdu.put_u16_le(0x0102).unwrap();
+        pdu.put_u16_le(0x0304).unwrap();
+        assert_eq!(pdu.data(), &[0x02, 0x01, 0x04, 0x03]);
+    }
+
+    #[test]
+    fn test_model_pdu_data_extend_from_slice() {
+        let mut pdu = Pdu::new(1).unwrap();
+        let buf = &[0x01, 0x02, 0x03];
+        assert!(pdu.extend_from_slice(buf).is_ok());
         assert_eq!(pdu.data(), &[0x01, 0x02, 0x03]);
+    }
+
+    #[test]
+    fn test_model_pdu_data_extend_from_slice_buffer_overflow() {
+        let mut pdu = Pdu::new(1).unwrap();
+        let buf = [0; MAX_PDU_SIZE];
+
+        assert!(pdu.extend_from_slice(&buf).is_err());
     }
 }
