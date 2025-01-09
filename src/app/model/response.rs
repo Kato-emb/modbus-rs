@@ -4,6 +4,14 @@ use super::*;
 use crate::app::types::*;
 use crate::Result;
 
+/// Read Coils
+/// ## Code
+/// * Function Code : `0x01`
+/// ## Data fields
+/// * Byte Count : `N / 8 (+ 1)`
+/// * Coil Status : `[bool; N]`
+pub type ReadCoilsResponse = Response<ReadCoils>;
+
 impl Response<ReadCoils> {
     pub fn new(coil_status: DataVec) -> Result<Self> {
         debug_assert!(coil_status.len() <= 250);
@@ -36,6 +44,14 @@ impl Debug for Response<ReadCoils> {
             .finish()
     }
 }
+
+/// Read Discrete Inputs
+/// ## Code
+/// * Function Code : `0x02`
+/// ## Data fields
+/// * Byte Count : `N / 8 (+ 1)`
+/// * Input Status : `[bool; N]`
+pub type ReadDiscreteInputsResponse = Response<ReadDiscreteInputs>;
 
 impl Response<ReadDiscreteInputs> {
     pub fn new(input_status: DataVec) -> Result<Self> {
@@ -70,6 +86,14 @@ impl Debug for Response<ReadDiscreteInputs> {
     }
 }
 
+/// Read Holding Registers
+/// ## Code
+/// * Function Code : `0x03`
+/// ## Data fields
+/// * Byte Count : `N * 2`
+/// * Register Value : `[u16; N]`
+pub type ReadHoldingRegistersResponse = Response<ReadHoldingRegisters>;
+
 impl Response<ReadHoldingRegisters> {
     pub fn new(register_value: DataVec) -> Result<Self> {
         debug_assert!(register_value.len() <= 250);
@@ -100,7 +124,7 @@ impl Response<ReadHoldingRegisters> {
         let start = 1 + index * 2;
 
         // Check if the index is within the bounds
-        if start + 1 <= byte_count as usize {
+        if start < byte_count as usize {
             self.inner.get_u16(start)
         } else {
             None
@@ -116,6 +140,14 @@ impl Debug for Response<ReadHoldingRegisters> {
             .finish()
     }
 }
+
+/// Read Input Registers
+/// ## Code
+/// * Function Code : `0x04`
+/// ## Data fields
+/// * Byte Count : `N * 2`
+/// * Input Registers : `[u16; N]`
+pub type ReadInputRegistersResponse = Response<ReadInputRegisters>;
 
 impl Response<ReadInputRegisters> {
     pub fn new(input_registers: DataVec) -> Result<Self> {
@@ -147,7 +179,7 @@ impl Response<ReadInputRegisters> {
         let start = 1 + index * 2;
 
         // Check if the index is within the bounds
-        if start + 1 <= byte_count as usize {
+        if start < byte_count as usize {
             self.inner.get_u16(start)
         } else {
             None
@@ -163,6 +195,14 @@ impl Debug for Response<ReadInputRegisters> {
             .finish()
     }
 }
+
+/// Write Single Coil
+/// ## Code
+/// * Function Code : `0x05`
+/// ## Request
+/// * Output Address : `u16`
+/// * Output Value : `bool`
+pub type WriteSingleCoilResponse = Response<WriteSingleCoil>;
 
 impl Response<WriteSingleCoil> {
     pub fn new(output_address: u16, output_value: bool) -> Result<Self> {
@@ -194,6 +234,14 @@ impl Debug for Response<WriteSingleCoil> {
     }
 }
 
+/// Write Single Register
+/// ## Code
+/// * Function Code : `0x06`
+/// ## Request
+/// * Register Address : `u16`
+/// * Register Value : `u16`
+pub type WriteSingleRegisterResponse = Response<WriteSingleRegister>;
+
 impl Response<WriteSingleRegister> {
     pub fn new(register_address: u16, register_value: u16) -> Result<Self> {
         let mut pdu = Pdu::new(PublicFunctionCode::WriteSingleRegister.into())?;
@@ -223,6 +271,13 @@ impl Debug for Response<WriteSingleRegister> {
             .finish()
     }
 }
+
+/// User Defined
+/// ## Code
+/// * Function Code : `u8`
+/// ## Data fields
+/// * Data : `[u8; 252]`
+pub type UserDefinedResponse = Response<UserDefined>;
 
 impl Response<UserDefined> {
     pub fn new(function_code: u8, data: DataVec) -> Result<Self> {
@@ -257,74 +312,111 @@ impl Debug for Response<UserDefined> {
 mod tests {
     use super::*;
 
-    fn create_data_vec(data: &[u8]) -> DataVec {
-        let data_vec = DataVec::from_slice(data).unwrap();
-        data_vec
-    }
-
     #[test]
-    fn test_model_data_rsp_read_coils() {
-        let coil_status = create_data_vec(&[0x02, 0x01, 0x01]);
-        let rsp = Response::<ReadCoils>::new(coil_status).unwrap();
-        assert_eq!(rsp.byte_count().unwrap(), 0x03);
+    fn test_app_model_rsp_read_coils() {
+        let coil_status = DataVec::from_slice(&[0x12, 0x34]).unwrap();
+        let rsp = ReadCoilsResponse::new(coil_status).unwrap();
+        assert_eq!(rsp.byte_count(), Some(0x02));
         let mut coil_status = rsp.coil_status().unwrap();
+
+        // first byte
         assert_eq!(coil_status.next(), Some(false));
         assert_eq!(coil_status.next(), Some(true));
         assert_eq!(coil_status.next(), Some(false));
+        assert_eq!(coil_status.next(), Some(false));
+        assert_eq!(coil_status.next(), Some(true));
+        assert_eq!(coil_status.next(), Some(false));
+        assert_eq!(coil_status.next(), Some(false));
+        assert_eq!(coil_status.next(), Some(false));
+
+        // second byte
+        assert_eq!(coil_status.next(), Some(false));
+        assert_eq!(coil_status.next(), Some(false));
+        assert_eq!(coil_status.next(), Some(true));
+        assert_eq!(coil_status.next(), Some(false));
+        assert_eq!(coil_status.next(), Some(true));
+        assert_eq!(coil_status.next(), Some(true));
+        assert_eq!(coil_status.next(), Some(false));
+        assert_eq!(coil_status.next(), Some(false));
+
+        // eos
+        assert_eq!(coil_status.next(), None);
     }
 
     #[test]
-    fn test_model_data_rsp_read_discrete_inputs() {
-        let input_status = create_data_vec(&[0x02, 0x01, 0x01]);
-        let rsp = Response::<ReadDiscreteInputs>::new(input_status).unwrap();
-        assert_eq!(rsp.byte_count().unwrap(), 0x03);
+    fn test_app_model_rsp_read_discrete_inputs() {
+        let input_status = DataVec::from_slice(&[0x12, 0x34]).unwrap();
+        let rsp = ReadDiscreteInputsResponse::new(input_status).unwrap();
+        assert_eq!(rsp.byte_count(), Some(0x02));
         let mut input_status = rsp.input_status().unwrap();
+
+        // first byte
         assert_eq!(input_status.next(), Some(false));
         assert_eq!(input_status.next(), Some(true));
         assert_eq!(input_status.next(), Some(false));
+        assert_eq!(input_status.next(), Some(false));
+        assert_eq!(input_status.next(), Some(true));
+        assert_eq!(input_status.next(), Some(false));
+        assert_eq!(input_status.next(), Some(false));
+        assert_eq!(input_status.next(), Some(false));
+
+        // second byte
+        assert_eq!(input_status.next(), Some(false));
+        assert_eq!(input_status.next(), Some(false));
+        assert_eq!(input_status.next(), Some(true));
+        assert_eq!(input_status.next(), Some(false));
+        assert_eq!(input_status.next(), Some(true));
+        assert_eq!(input_status.next(), Some(true));
+        assert_eq!(input_status.next(), Some(false));
+        assert_eq!(input_status.next(), Some(false));
+
+        // eos
+        assert_eq!(input_status.next(), None);
     }
 
     #[test]
-    fn test_model_data_rsp_read_holding_registers() {
-        let register_value = create_data_vec(&[0x01, 0x02, 0x03, 0x04]);
-        let rsp = Response::<ReadHoldingRegisters>::new(register_value).unwrap();
-        assert_eq!(rsp.byte_count().unwrap(), 0x04);
+    fn test_app_model_rsp_read_holding_registers() {
+        let register_value = DataVec::from_slice(&[0x12, 0x34, 0x56, 0x78]).unwrap();
+        let rsp = ReadHoldingRegistersResponse::new(register_value).unwrap();
+        assert_eq!(rsp.byte_count(), Some(0x04));
         let mut register_value = rsp.register_value().unwrap();
-        assert_eq!(register_value.next(), Some(0x0102));
-        assert_eq!(register_value.next(), Some(0x0304));
+
+        assert_eq!(register_value.next(), Some(0x1234));
+        assert_eq!(register_value.next(), Some(0x5678));
         assert_eq!(register_value.next(), None);
 
-        assert_eq!(rsp.register(0).unwrap(), 0x0102);
-        assert_eq!(rsp.register(1).unwrap(), 0x0304);
-        assert!(rsp.register(2).is_none());
+        assert_eq!(rsp.register(0), Some(0x1234));
+        assert_eq!(rsp.register(1), Some(0x5678));
+        assert_eq!(rsp.register(2), None);
     }
 
     #[test]
-    fn test_model_data_rsp_read_input_registers() {
-        let input_registers = create_data_vec(&[0x01, 0x02, 0x03, 0x04]);
-        let rsp = Response::<ReadInputRegisters>::new(input_registers).unwrap();
-        assert_eq!(rsp.byte_count().unwrap(), 0x04);
+    fn test_app_model_rsp_read_input_registers() {
+        let input_registers = DataVec::from_slice(&[0x12, 0x34, 0x56, 0x78]).unwrap();
+        let rsp = ReadInputRegistersResponse::new(input_registers).unwrap();
+        assert_eq!(rsp.byte_count(), Some(0x04));
         let mut input_registers = rsp.input_registers().unwrap();
-        assert_eq!(input_registers.next(), Some(0x0102));
-        assert_eq!(input_registers.next(), Some(0x0304));
+
+        assert_eq!(input_registers.next(), Some(0x1234));
+        assert_eq!(input_registers.next(), Some(0x5678));
         assert_eq!(input_registers.next(), None);
 
-        assert_eq!(rsp.register(0).unwrap(), 0x0102);
-        assert_eq!(rsp.register(1).unwrap(), 0x0304);
-        assert!(rsp.register(2).is_none());
+        assert_eq!(rsp.register(0), Some(0x1234));
+        assert_eq!(rsp.register(1), Some(0x5678));
+        assert_eq!(rsp.register(2), None);
     }
 
     #[test]
-    fn test_model_data_rsp_write_single_register() {
-        let rsp = Response::<WriteSingleRegister>::new(0x0102, 0x0304).unwrap();
-        assert_eq!(rsp.register_address().unwrap(), 0x0102);
-        assert_eq!(rsp.register_value().unwrap(), 0x0304);
+    fn test_app_model_rsp_wite_single_register() {
+        let rsp = WriteSingleRegisterResponse::new(0x0102, 0x0304).unwrap();
+        assert_eq!(rsp.register_address(), Some(0x0102));
+        assert_eq!(rsp.register_value(), Some(0x0304));
     }
 
     #[test]
-    fn test_model_data_rsp_user_defined() {
-        let data = create_data_vec(&[0x01, 0x02]);
-        let rsp = Response::<UserDefined>::new(0x0A, data).unwrap();
+    fn test_app_model_rsp_user_defined() {
+        let data = DataVec::from_slice(&[0x01, 0x02]).unwrap();
+        let rsp = UserDefinedResponse::new(0x0A, data).unwrap();
         assert_eq!(rsp.function_code(), 0x0A);
         assert_eq!(rsp.data(), &[0x01, 0x02]);
     }

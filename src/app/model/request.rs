@@ -3,9 +3,17 @@ use super::function::*;
 use super::*;
 use crate::{error::ModbusApplicationError, Result};
 
+/// Read Coils
+/// ## Code
+/// * Function Code : `0x01`
+/// ## Data fields
+/// * Starting Address : `u16`
+/// * Quantity of Coils : `u16`
+pub type ReadCoilsRequest = Request<ReadCoils>;
+
 impl Request<ReadCoils> {
     pub fn new(starting_address: u16, quantity_of_coils: u16) -> Result<Self> {
-        if quantity_of_coils < 1 || quantity_of_coils > 2000 {
+        if !(1..=2000).contains(&quantity_of_coils) {
             return Err(ModbusApplicationError::OutOfRange.into());
         }
 
@@ -37,9 +45,17 @@ impl Debug for Request<ReadCoils> {
     }
 }
 
+/// Read Discrete Inputs
+/// ## Code
+/// * Function Code : `0x02`
+/// ## Data fields
+/// * Starting Address : `u16`
+/// * Quantity of Inputs : `u16`
+pub type ReadDiscreteInputsRequest = Request<ReadDiscreteInputs>;
+
 impl Request<ReadDiscreteInputs> {
     pub fn new(starting_address: u16, quantity_of_inputs: u16) -> Result<Self> {
-        if quantity_of_inputs < 1 || quantity_of_inputs > 2000 {
+        if !(1..=2000).contains(&quantity_of_inputs) {
             return Err(ModbusApplicationError::OutOfRange.into());
         }
 
@@ -71,9 +87,17 @@ impl Debug for Request<ReadDiscreteInputs> {
     }
 }
 
+/// Read Holding Registers
+/// ## Code
+/// * Function Code : `0x03`
+/// ## Data fields
+/// * Starting Address : `u16`
+/// * Quantity of Registers : `u16`
+pub type ReadHoldingRegistersRequest = Request<ReadHoldingRegisters>;
+
 impl Request<ReadHoldingRegisters> {
     pub fn new(starting_address: u16, quantity_of_registers: u16) -> Result<Self> {
-        if quantity_of_registers < 1 || quantity_of_registers > 125 {
+        if !(1..=125).contains(&quantity_of_registers) {
             return Err(ModbusApplicationError::OutOfRange.into());
         }
 
@@ -105,9 +129,17 @@ impl Debug for Request<ReadHoldingRegisters> {
     }
 }
 
+/// Read Input Registers
+/// ## Code
+/// * Function Code : `0x04`
+/// ## Data fields
+/// * Starting Address : `u16`
+/// * Quantity of Registers : `u16`
+pub type ReadInputRegistersRequest = Request<ReadInputRegisters>;
+
 impl Request<ReadInputRegisters> {
     pub fn new(starting_address: u16, quantity_of_input_registers: u16) -> Result<Self> {
-        if quantity_of_input_registers < 1 || quantity_of_input_registers > 125 {
+        if !(1..=125).contains(&quantity_of_input_registers) {
             return Err(ModbusApplicationError::OutOfRange.into());
         }
 
@@ -142,6 +174,14 @@ impl Debug for Request<ReadInputRegisters> {
     }
 }
 
+/// Write Single Coil
+/// ## Code
+/// * Function Code : `0x05`
+/// ## Data fields
+/// * Output Address : `u16`
+/// * Output Value : `u16`
+pub type WriteSingleCoilRequest = Request<WriteSingleCoil>;
+
 impl Request<WriteSingleCoil> {
     pub fn new(output_address: u16, output_value: bool) -> Result<Self> {
         let mut pdu = Pdu::new(PublicFunctionCode::WriteSingleCoil.into())?;
@@ -172,6 +212,14 @@ impl Debug for Request<WriteSingleCoil> {
     }
 }
 
+/// Write Single Register
+/// ## Code
+/// * Function Code : `0x06`
+/// ## Data fields
+/// * Register Address : `u16`
+/// * Register Value : `u16`
+pub type WriteSingleRegisterRequest = Request<WriteSingleRegister>;
+
 impl Request<WriteSingleRegister> {
     pub fn new(register_address: u16, register_value: u16) -> Result<Self> {
         let mut pdu = Pdu::new(PublicFunctionCode::WriteSingleRegister.into())?;
@@ -201,6 +249,13 @@ impl Debug for Request<WriteSingleRegister> {
             .finish()
     }
 }
+
+/// User Defined
+/// ## Code
+/// * Function Code : `u8`
+/// ## Data fields
+/// * Data : `[u8; 252]`
+pub type UserDefinedRequest = Request<UserDefined>;
 
 impl Request<UserDefined> {
     pub fn new(function_code: u8, data: &[u8]) -> Result<Self> {
@@ -236,36 +291,74 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_model_data_req_read_coils() {
-        let req = Request::<ReadCoils>::new(0x0001, 0x0002).unwrap();
-        assert_eq!(req.starting_address().unwrap(), 0x0001);
-        assert_eq!(req.quantity_of_coils().unwrap(), 0x0002);
+    fn test_app_model_req_read_coils_valid() {
+        let req = ReadCoilsRequest::new(0x0001, 0x0002).unwrap();
+        assert_eq!(req.starting_address(), Some(0x0001));
+        assert_eq!(req.quantity_of_coils(), Some(0x0002));
     }
 
     #[test]
-    fn test_model_data_req_read_discrete_inputs() {
-        let req = Request::<ReadDiscreteInputs>::new(0x0001, 0x0002).unwrap();
-        assert_eq!(req.starting_address().unwrap(), 0x0001);
-        assert_eq!(req.quantity_of_inputs().unwrap(), 0x0002);
+    fn test_app_model_req_read_coils_out_of_range() {
+        assert!(ReadCoilsRequest::new(0x0001, 0x0000).is_err());
+        assert!(ReadCoilsRequest::new(0x0001, 0x07D1).is_err());
     }
 
     #[test]
-    fn test_model_data_req_read_holding_registers() {
-        let req = Request::<ReadHoldingRegisters>::new(0x0001, 0x0002).unwrap();
-        assert_eq!(req.starting_address().unwrap(), 0x0001);
-        assert_eq!(req.quantity_of_registers().unwrap(), 0x0002);
+    fn test_app_model_req_read_discrete_inputs_vaild() {
+        let req = ReadDiscreteInputsRequest::new(0x0001, 0x0002).unwrap();
+        assert_eq!(req.starting_address(), Some(0x0001));
+        assert_eq!(req.quantity_of_inputs(), Some(0x0002));
     }
 
     #[test]
-    fn test_model_data_req_write_single_register() {
-        let req = Request::<WriteSingleRegister>::new(0x0001, 0x0002).unwrap();
+    fn test_app_model_req_read_discrete_inputs_out_of_range() {
+        assert!(ReadDiscreteInputsRequest::new(0x0001, 0x0000).is_err());
+        assert!(ReadDiscreteInputsRequest::new(0x0001, 0x07D1).is_err());
+    }
+
+    #[test]
+    fn test_app_model_req_read_holding_registers_vaild() {
+        let req = ReadHoldingRegistersRequest::new(0x0001, 0x0002).unwrap();
+        assert_eq!(req.starting_address(), Some(0x0001));
+        assert_eq!(req.quantity_of_registers(), Some(0x0002));
+    }
+
+    #[test]
+    fn test_app_model_req_read_holding_registers_out_of_range() {
+        assert!(ReadHoldingRegistersRequest::new(0x0001, 0x0000).is_err());
+        assert!(ReadHoldingRegistersRequest::new(0x0001, 0x007E).is_err());
+    }
+
+    #[test]
+    fn test_app_model_req_read_input_registers_vaild() {
+        let req = ReadInputRegistersRequest::new(0x0001, 0x0002).unwrap();
+        assert_eq!(req.starting_address(), Some(0x0001));
+        assert_eq!(req.quantity_of_input_registers(), Some(0x0002));
+    }
+
+    #[test]
+    fn test_app_model_req_read_input_registers_out_of_range() {
+        assert!(ReadInputRegistersRequest::new(0x0001, 0x0000).is_err());
+        assert!(ReadInputRegistersRequest::new(0x0001, 0x007E).is_err());
+    }
+
+    #[test]
+    fn test_model_data_req_write_single_coil_valid() {
+        let req = WriteSingleCoilRequest::new(0x0001, true).unwrap();
+        assert_eq!(req.output_address().unwrap(), 0x0001);
+        assert_eq!(req.output_value().unwrap(), true);
+    }
+
+    #[test]
+    fn test_model_data_req_write_single_register_valid() {
+        let req = WriteSingleRegisterRequest::new(0x0001, 0x0002).unwrap();
         assert_eq!(req.register_address().unwrap(), 0x0001);
         assert_eq!(req.register_value().unwrap(), 0x0002);
     }
 
     #[test]
     fn test_model_data_req_user_defined() {
-        let req = Request::<UserDefined>::new(0x0A, &[0x01, 0x02]).unwrap();
+        let req = UserDefinedRequest::new(0x0A, &[0x01, 0x02]).unwrap();
         assert_eq!(req.function_code(), 0x0A);
         assert_eq!(req.data(), &[0x01, 0x02]);
     }
