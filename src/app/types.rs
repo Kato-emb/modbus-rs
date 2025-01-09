@@ -32,7 +32,7 @@ impl BitSet<'_> {
     }
 }
 
-impl<'a> iter::Iterator for BitSet<'a> {
+impl iter::Iterator for BitSet<'_> {
     type Item = bool;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -73,7 +73,7 @@ impl RegisterSlice<'_> {
     }
 }
 
-impl<'a> Iterator for RegisterSlice<'a> {
+impl Iterator for RegisterSlice<'_> {
     type Item = u16;
 
     fn next(&mut self) -> Option<Self::Item> {

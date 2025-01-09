@@ -9,10 +9,8 @@ mod lib {
         pub use std::*;
     }
 
-    pub use self::core::iter;
-    pub use self::core::{u16, u8, usize};
-
     pub use self::core::fmt::{self, Debug, Display};
+    pub use self::core::iter;
     pub use self::core::marker::PhantomData;
 }
 
