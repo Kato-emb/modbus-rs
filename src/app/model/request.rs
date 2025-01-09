@@ -345,15 +345,15 @@ mod tests {
     #[test]
     fn test_model_data_req_write_single_coil_valid() {
         let req = WriteSingleCoilRequest::new(0x0001, true).unwrap();
-        assert_eq!(req.output_address().unwrap(), 0x0001);
-        assert_eq!(req.output_value().unwrap(), true);
+        assert_eq!(req.output_address(), Some(0x0001));
+        assert_eq!(req.output_value(), Some(true));
     }
 
     #[test]
     fn test_model_data_req_write_single_register_valid() {
         let req = WriteSingleRegisterRequest::new(0x0001, 0x0002).unwrap();
-        assert_eq!(req.register_address().unwrap(), 0x0001);
-        assert_eq!(req.register_value().unwrap(), 0x0002);
+        assert_eq!(req.register_address(), Some(0x0001));
+        assert_eq!(req.register_value(), Some(0x0002));
     }
 
     #[test]
