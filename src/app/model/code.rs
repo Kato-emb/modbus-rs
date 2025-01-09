@@ -1,5 +1,4 @@
-use crate::error::ModbusApplicationError;
-use crate::lib::*;
+use crate::{error::ModbusApplicationError, lib::*};
 
 /// Modbus function code
 #[derive(Clone, Copy, PartialEq)]
@@ -117,6 +116,7 @@ pub enum ExceptionCode {
     MemoryParityError = 0x08,
     GatewayPathUnavailable = 0x0A,
     GatewayTargetDeviceFailedToRespond = 0x0B,
+    __Unknown = 0xFF,
 }
 
 impl TryFrom<u8> for ExceptionCode {

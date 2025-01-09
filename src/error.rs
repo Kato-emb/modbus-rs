@@ -16,8 +16,6 @@ pub enum ModbusApplicationError {
     UndefinedFunctionCode(u8),
     #[error("Undefined function code: {0}")]
     UndefinedExceptionCode(u8),
-    #[error("Missing data")]
-    MissingData,
-    #[error("Invalid data")]
-    InvalidData,
+    #[error("Data out of range")]
+    OutOfRange,
 }

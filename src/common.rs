@@ -1,19 +1,12 @@
 use crate::{error::ModbusApplicationError, lib::*, Result};
 
-pub mod code;
-pub mod data;
-
 const MAX_PDU_SIZE: usize = 253;
 
-#[cfg(feature = "std")]
-type Data<T> = Vec<T>;
-
-#[cfg(not(feature = "std"))]
-type Data<T> = Vec<T, MAX_PDU_SIZE>;
+type PduVec<T> = heapless::Vec<T, MAX_PDU_SIZE>;
 
 #[derive(Clone, PartialEq)]
 pub struct Pdu {
-    data: Data<u8>,
+    data: PduVec<u8>,
 }
 
 impl Debug for Pdu {
@@ -22,17 +15,16 @@ impl Debug for Pdu {
     }
 }
 
+impl Display for Pdu {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:x} {:?}", self.function_code(), self.data())
+    }
+}
+
 impl Pdu {
     pub fn new(function_code: u8) -> Result<Self> {
-        #[cfg(feature = "std")]
         let data = {
-            let mut data = Vec::with_capacity(MAX_PDU_SIZE);
-            data.push(function_code);
-            data
-        };
-        #[cfg(not(feature = "std"))]
-        let data = {
-            let mut data = Vec::new();
+            let mut data = PduVec::new();
             data.push(function_code)
                 .map_err(|_| ModbusApplicationError::BufferOverflow)?;
             data
@@ -51,9 +43,6 @@ impl Pdu {
 
     fn push(&mut self, buf: u8) -> Result<()> {
         if self.data.len() < MAX_PDU_SIZE {
-            #[cfg(feature = "std")]
-            self.data.push(buf);
-            #[cfg(not(feature = "std"))]
             self.data
                 .push(buf)
                 .map_err(|_| ModbusApplicationError::BufferOverflow)?;
@@ -79,9 +68,6 @@ impl Pdu {
 
     pub fn extend_from_slice(&mut self, buf: &[u8]) -> Result<()> {
         if self.data.len() + buf.len() <= MAX_PDU_SIZE {
-            #[cfg(feature = "std")]
-            self.data.extend_from_slice(buf);
-            #[cfg(not(feature = "std"))]
             self.data
                 .extend_from_slice(buf)
                 .map_err(|_| ModbusApplicationError::BufferOverflow)?;

@@ -1,9 +1,12 @@
+use super::code::*;
+use super::function::*;
 use super::*;
+use crate::{error::ModbusApplicationError, Result};
 
 impl Request<ReadCoils> {
     pub fn new(starting_address: u16, quantity_of_coils: u16) -> Result<Self> {
         if quantity_of_coils < 1 || quantity_of_coils > 2000 {
-            return Err(ModbusApplicationError::InvalidData.into());
+            return Err(ModbusApplicationError::OutOfRange.into());
         }
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadCoils.into())?;
@@ -37,7 +40,7 @@ impl Debug for Request<ReadCoils> {
 impl Request<ReadDiscreteInputs> {
     pub fn new(starting_address: u16, quantity_of_inputs: u16) -> Result<Self> {
         if quantity_of_inputs < 1 || quantity_of_inputs > 2000 {
-            return Err(ModbusApplicationError::InvalidData.into());
+            return Err(ModbusApplicationError::OutOfRange.into());
         }
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadDiscreteInputs.into())?;
@@ -71,7 +74,7 @@ impl Debug for Request<ReadDiscreteInputs> {
 impl Request<ReadHoldingRegisters> {
     pub fn new(starting_address: u16, quantity_of_registers: u16) -> Result<Self> {
         if quantity_of_registers < 1 || quantity_of_registers > 125 {
-            return Err(ModbusApplicationError::InvalidData.into());
+            return Err(ModbusApplicationError::OutOfRange.into());
         }
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadHoldingRegisters.into())?;
@@ -98,6 +101,73 @@ impl Debug for Request<ReadHoldingRegisters> {
         f.debug_struct("Request<ReadHoldingRegisters>")
             .field("starting_address", &self.starting_address())
             .field("quantity_of_registers", &self.quantity_of_registers())
+            .finish()
+    }
+}
+
+impl Request<ReadInputRegisters> {
+    pub fn new(starting_address: u16, quantity_of_input_registers: u16) -> Result<Self> {
+        if quantity_of_input_registers < 1 || quantity_of_input_registers > 125 {
+            return Err(ModbusApplicationError::OutOfRange.into());
+        }
+
+        let mut pdu = Pdu::new(PublicFunctionCode::ReadInputRegisters.into())?;
+        pdu.put_u16(starting_address)?;
+        pdu.put_u16(quantity_of_input_registers)?;
+
+        Ok(Self {
+            inner: pdu,
+            _marker: PhantomData,
+        })
+    }
+
+    pub fn starting_address(&self) -> Option<u16> {
+        self.inner.get_u16(0)
+    }
+
+    pub fn quantity_of_input_registers(&self) -> Option<u16> {
+        self.inner.get_u16(2)
+    }
+}
+
+impl Debug for Request<ReadInputRegisters> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Request<ReadInputRegisters>")
+            .field("starting_address", &self.starting_address())
+            .field(
+                "quantity_of_input_registers",
+                &self.quantity_of_input_registers(),
+            )
+            .finish()
+    }
+}
+
+impl Request<WriteSingleCoil> {
+    pub fn new(output_address: u16, output_value: bool) -> Result<Self> {
+        let mut pdu = Pdu::new(PublicFunctionCode::WriteSingleCoil.into())?;
+        pdu.put_u16(output_address)?;
+        pdu.put_u16(if output_value { 0xFF00 } else { 0x0000 })?;
+
+        Ok(Self {
+            inner: pdu,
+            _marker: PhantomData,
+        })
+    }
+
+    pub fn output_address(&self) -> Option<u16> {
+        self.inner.get_u16(0)
+    }
+
+    pub fn output_value(&self) -> Option<bool> {
+        self.inner.get_u16(2).map(|v| v == 0xFF00)
+    }
+}
+
+impl Debug for Request<WriteSingleCoil> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Request<WriteSingleCoil>")
+            .field("output_address", &self.output_address())
+            .field("output_value", &self.output_value())
             .finish()
     }
 }
