@@ -120,11 +120,11 @@ impl<T: Transport> Client<T> {
     }
 }
 
+#[cfg(feature = "rtu")]
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[cfg(feature = "rtu")]
     #[tokio::test]
     async fn test_app_client_read_registers() {
         use crate::transport::rtu::SerialTransport;

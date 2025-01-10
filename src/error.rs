@@ -4,7 +4,6 @@ use thiserror::Error;
 pub enum ModbusError {
     #[error("Modbus application error: {0}")]
     ApplicationError(#[from] ModbusApplicationError),
-    #[cfg(feature = "transport")]
     #[error("Modbus transport error: {0}")]
     TransportError(#[from] ModbusTransportError),
 }
@@ -23,7 +22,6 @@ pub enum ModbusApplicationError {
     BufferError(#[from] BufferError),
 }
 
-#[cfg(feature = "transport")]
 #[derive(Debug, Error)]
 pub enum ModbusTransportError {
     #[error(transparent)]
