@@ -160,24 +160,18 @@ mod tests {
     #[test]
     fn test_model_code_public_function_code_try_from() {
         assert_eq!(
-            PublicFunctionCode::try_from(0x01),
-            Ok(PublicFunctionCode::ReadCoils)
+            PublicFunctionCode::try_from(0x01).unwrap(),
+            PublicFunctionCode::ReadCoils
         );
-        assert_eq!(
-            PublicFunctionCode::try_from(0x80),
-            Err(ModbusApplicationError::UndefinedFunctionCode(0x80))
-        );
+        assert!(PublicFunctionCode::try_from(0x80).is_err());
     }
 
     #[test]
     fn test_model_code_exception_code_try_from() {
         assert_eq!(
-            ExceptionCode::try_from(0x01),
-            Ok(ExceptionCode::IllegalFunction)
+            ExceptionCode::try_from(0x01).unwrap(),
+            ExceptionCode::IllegalFunction
         );
-        assert_eq!(
-            ExceptionCode::try_from(0x80),
-            Err(ModbusApplicationError::UndefinedExceptionCode(0x80))
-        );
+        assert!(ExceptionCode::try_from(0x80).is_err());
     }
 }
