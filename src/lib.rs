@@ -10,6 +10,7 @@ mod lib {
     }
 
     pub use self::core::fmt::{self, Debug, Display};
+    pub use self::core::future;
     pub use self::core::iter;
     pub use self::core::marker::PhantomData;
 }
@@ -17,5 +18,9 @@ mod lib {
 pub mod app;
 pub mod common;
 pub mod error;
+pub mod interface;
+
+#[cfg(feature = "transport")]
+pub mod transport;
 
 type Result<T> = core::result::Result<T, error::ModbusError>;

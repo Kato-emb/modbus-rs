@@ -6,13 +6,24 @@ authors = ["Ryouhei Kato <r-kato@musen.co.jp>"]
 description = "Modbus `no_std` library for embedded systems"
 
 [features]
-default = ["std"]
+default = ["rtu"]
 
 std = []
 
+transport = ["std", "tokio"]
+rtu = ["transport", "tokio-serial"]
+tcp = ["transport", "tokio/net"]
+
 [dependencies]
 heapless = { version = "0.8.0" }
-
 thiserror = { version = "2", default-features = false }
+
+tokio = { version = "1.42.0", default-features = false, optional = true, features = [
+    "time",
+    "io-util",
+    "macros",
+    "rt-multi-thread",
+] }
+tokio-serial = { version = "5.4.5", default-features = false, optional = true }
 
 [dev-dependencies]
