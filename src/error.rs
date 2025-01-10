@@ -13,8 +13,10 @@ pub enum ModbusError {
 pub enum ModbusApplicationError {
     #[error("Undefined function code: {0}")]
     UndefinedFunctionCode(u8),
-    #[error("Undefined function code: {0}")]
+    #[error("Undefined exception code: {0}")]
     UndefinedExceptionCode(u8),
+    #[error("Unexpected code: src={0}, dst={1}")]
+    UnexpectedCode(u8, u8),
     #[error("Data out of range")]
     OutOfRange,
     #[error(transparent)]

@@ -1,43 +1,99 @@
-use crate::{common::Pdu, lib::*};
+use crate::{common::Pdu, error::ModbusApplicationError, lib::*};
 
 pub mod code;
 pub mod request;
 pub mod response;
 
+pub trait Function {
+    fn function_code() -> u8;
+}
+
 /// Modbus request implementation
 #[derive(Clone, PartialEq)]
 pub struct Request<T> {
-    inner: Pdu,
+    pub(super) inner: Pdu,
     _marker: PhantomData<T>,
 }
 
-impl<T> From<Pdu> for Request<T> {
-    fn from(value: Pdu) -> Self {
-        Self {
+impl<T> Request<T> {
+    pub fn into_inner(self) -> Pdu {
+        self.inner
+    }
+}
+
+impl<T> Debug for Request<T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Request")
+            .field("function_code", &self.inner.function_code())
+            .field("data", &self.inner.data())
+            .finish()
+    }
+}
+
+impl<T: Function> TryFrom<Pdu> for Request<T> {
+    type Error = ModbusApplicationError;
+
+    fn try_from(value: Pdu) -> Result<Self, Self::Error> {
+        if value.function_code() != T::function_code() {
+            return Err(ModbusApplicationError::UnexpectedCode(
+                value.function_code(),
+                T::function_code(),
+            )
+            .into());
+        }
+
+        Ok(Self {
             inner: value,
             _marker: PhantomData,
-        }
+        })
     }
 }
 
 /// Modbus response implementation
 #[derive(Clone, PartialEq)]
 pub struct Response<T> {
-    inner: Pdu,
+    pub(super) inner: Pdu,
     _marker: PhantomData<T>,
 }
 
-impl<T> From<Pdu> for Response<T> {
-    fn from(value: Pdu) -> Self {
-        Self {
+impl<T> Response<T> {
+    pub fn into_inner(self) -> Pdu {
+        self.inner
+    }
+}
+
+impl<T> Debug for Response<T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Response")
+            .field("function_code", &self.inner.function_code())
+            .field("data", &self.inner.data())
+            .finish()
+    }
+}
+
+impl<T: Function> TryFrom<Pdu> for Response<T> {
+    type Error = ModbusApplicationError;
+
+    fn try_from(value: Pdu) -> Result<Self, Self::Error> {
+        if value.function_code() != T::function_code() {
+            return Err(ModbusApplicationError::UnexpectedCode(
+                value.function_code(),
+                T::function_code(),
+            )
+            .into());
+        }
+
+        Ok(Self {
             inner: value,
             _marker: PhantomData,
-        }
+        })
     }
 }
 
 /// Function code descriptions
 mod function {
+    use super::{code::PublicFunctionCode, Function};
+
     /// Read Coils
     ///
     /// This function code is used to read from 1 to 2000 contiguous status of coils in a remote device.
@@ -52,6 +108,12 @@ mod function {
     /// * Coil Status : `[u8; N]`
     #[derive(Debug, Clone, PartialEq)]
     pub struct ReadCoils;
+
+    impl Function for ReadCoils {
+        fn function_code() -> u8 {
+            PublicFunctionCode::ReadCoils as u8
+        }
+    }
 
     /// Read Discrete Inputs
     ///
@@ -68,6 +130,12 @@ mod function {
     #[derive(Debug, Clone, PartialEq)]
     pub struct ReadDiscreteInputs;
 
+    impl Function for ReadDiscreteInputs {
+        fn function_code() -> u8 {
+            PublicFunctionCode::ReadDiscreteInputs as u8
+        }
+    }
+
     /// Read Holding Registers
     ///
     /// This function code is used to read the contents of a contiguous block of holding registers in a remote device.
@@ -82,6 +150,12 @@ mod function {
     /// * Register Value : `[u16; N]`
     #[derive(Debug, Clone, PartialEq)]
     pub struct ReadHoldingRegisters;
+
+    impl Function for ReadHoldingRegisters {
+        fn function_code() -> u8 {
+            PublicFunctionCode::ReadHoldingRegisters as u8
+        }
+    }
 
     /// Read Input Registers
     ///
@@ -98,8 +172,20 @@ mod function {
     #[derive(Debug, Clone, PartialEq)]
     pub struct ReadInputRegisters;
 
+    impl Function for ReadInputRegisters {
+        fn function_code() -> u8 {
+            PublicFunctionCode::ReadInputRegisters as u8
+        }
+    }
+
     #[derive(Debug, Clone, PartialEq)]
     pub struct WriteSingleCoil;
+
+    impl Function for WriteSingleCoil {
+        fn function_code() -> u8 {
+            PublicFunctionCode::WriteSingleCoil as u8
+        }
+    }
 
     /// Write Single Register
     ///
@@ -115,6 +201,12 @@ mod function {
     /// * Register Value : `u16`
     #[derive(Debug, Clone, PartialEq)]
     pub struct WriteSingleRegister;
+
+    impl Function for WriteSingleRegister {
+        fn function_code() -> u8 {
+            PublicFunctionCode::WriteSingleRegister as u8
+        }
+    }
 
     /// User Defined
     ///
