@@ -1,7 +1,8 @@
 use super::code::*;
 use super::function::*;
 use super::*;
-use crate::{error::ModbusApplicationError, Result};
+use crate::app::Result;
+use crate::error::ModbusApplicationError;
 
 /// Read Coils
 /// ## Code
@@ -36,7 +37,7 @@ impl Request<ReadCoils> {
     }
 }
 
-impl Debug for Request<ReadCoils> {
+impl Display for Request<ReadCoils> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Request<ReadCoils>")
             .field("starting_address", &self.starting_address())
@@ -78,7 +79,7 @@ impl Request<ReadDiscreteInputs> {
     }
 }
 
-impl Debug for Request<ReadDiscreteInputs> {
+impl Display for Request<ReadDiscreteInputs> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Request<ReadDiscreteInputs>")
             .field("starting_address", &self.starting_address())
@@ -120,7 +121,7 @@ impl Request<ReadHoldingRegisters> {
     }
 }
 
-impl Debug for Request<ReadHoldingRegisters> {
+impl Display for Request<ReadHoldingRegisters> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Request<ReadHoldingRegisters>")
             .field("starting_address", &self.starting_address())
@@ -162,7 +163,7 @@ impl Request<ReadInputRegisters> {
     }
 }
 
-impl Debug for Request<ReadInputRegisters> {
+impl Display for Request<ReadInputRegisters> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Request<ReadInputRegisters>")
             .field("starting_address", &self.starting_address())
@@ -203,7 +204,7 @@ impl Request<WriteSingleCoil> {
     }
 }
 
-impl Debug for Request<WriteSingleCoil> {
+impl Display for Request<WriteSingleCoil> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Request<WriteSingleCoil>")
             .field("output_address", &self.output_address())
@@ -241,7 +242,7 @@ impl Request<WriteSingleRegister> {
     }
 }
 
-impl Debug for Request<WriteSingleRegister> {
+impl Display for Request<WriteSingleRegister> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Request<WriteSingleRegister>")
             .field("register_address", &self.register_address())
@@ -277,7 +278,7 @@ impl Request<UserDefined> {
     }
 }
 
-impl Debug for Request<UserDefined> {
+impl Display for Request<UserDefined> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Request<UserDefined>")
             .field("function_code", &self.function_code())

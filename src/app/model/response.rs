@@ -2,7 +2,7 @@ use super::code::*;
 use super::function::*;
 use super::*;
 use crate::app::types::*;
-use crate::Result;
+use crate::app::Result;
 
 /// Read Coils
 /// ## Code
@@ -36,7 +36,7 @@ impl Response<ReadCoils> {
     }
 }
 
-impl Debug for Response<ReadCoils> {
+impl Display for Response<ReadCoils> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Response<ReadCoils>")
             .field("byte_count", &self.byte_count())
@@ -77,7 +77,7 @@ impl Response<ReadDiscreteInputs> {
     }
 }
 
-impl Debug for Response<ReadDiscreteInputs> {
+impl Display for Response<ReadDiscreteInputs> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Response<ReadDiscreteInputs>")
             .field("byte_count", &self.byte_count())
@@ -132,7 +132,7 @@ impl Response<ReadHoldingRegisters> {
     }
 }
 
-impl Debug for Response<ReadHoldingRegisters> {
+impl Display for Response<ReadHoldingRegisters> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Response<ReadHoldingRegisters>")
             .field("byte_count", &self.byte_count())
@@ -187,7 +187,7 @@ impl Response<ReadInputRegisters> {
     }
 }
 
-impl Debug for Response<ReadInputRegisters> {
+impl Display for Response<ReadInputRegisters> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Response<ReadInputRegisters>")
             .field("byte_count", &self.byte_count())
@@ -225,7 +225,7 @@ impl Response<WriteSingleCoil> {
     }
 }
 
-impl Debug for Response<WriteSingleCoil> {
+impl Display for Response<WriteSingleCoil> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Response<WriteSingleCoil>")
             .field("output_address", &self.output_address())
@@ -263,7 +263,7 @@ impl Response<WriteSingleRegister> {
     }
 }
 
-impl Debug for Response<WriteSingleRegister> {
+impl Display for Response<WriteSingleRegister> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Response<WriteSingleRegister>")
             .field("register_address", &self.register_address())
@@ -297,9 +297,16 @@ impl Response<UserDefined> {
     pub fn data(&self) -> &[u8] {
         self.inner.data()
     }
+
+    pub fn from_pdu(pdu: Pdu) -> Self {
+        Self {
+            inner: pdu,
+            _marker: PhantomData,
+        }
+    }
 }
 
-impl Debug for Response<UserDefined> {
+impl Display for Response<UserDefined> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Response<UserDefined>")
             .field("function_code", &self.function_code())
