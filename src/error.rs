@@ -22,8 +22,10 @@ pub enum ModbusApplicationError {
     BufferError(#[from] BufferError),
 }
 
+// ToDo. 通信関連のエラーがno_stdで使えないのでアプローチを考える
 #[derive(Debug, Error)]
 pub enum ModbusTransportError {
+    #[cfg(feature = "std")]
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[cfg(feature = "rtu")]
