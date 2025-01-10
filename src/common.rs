@@ -1,9 +1,15 @@
-use crate::{error::ModbusApplicationError, lib::*, Result};
+use crate::{error::BufferError, lib::*};
 
+const MIN_PDU_SIZE: usize = 1;
 const MAX_PDU_SIZE: usize = 253;
 
+type Result<T> = core::result::Result<T, BufferError>;
 type PduVec<T> = heapless::Vec<T, MAX_PDU_SIZE>;
 
+/// Protocol Data Unit
+/// # Structure
+/// * Code : `u8`
+/// * Data : `[u8; N]` (MAX : 252 bytes)
 #[derive(Clone, PartialEq)]
 pub struct Pdu {
     data: PduVec<u8>,
@@ -16,21 +22,33 @@ impl Debug for Pdu {
 }
 
 impl Display for Pdu {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:x} {:?}", self.function_code(), self.data())
+    }
+}
+
+impl TryFrom<&[u8]> for Pdu {
+    type Error = BufferError;
+
+    fn try_from(value: &[u8]) -> core::result::Result<Self, Self::Error> {
+        if value.len() < MIN_PDU_SIZE {
+            return Err(BufferError::BufferUnderflow);
+        }
+
+        let data = PduVec::from_slice(value).map_err(|_| BufferError::BufferOverflow)?;
+        Ok(Self { data })
     }
 }
 
 impl Pdu {
     pub fn new(function_code: u8) -> Result<Self> {
-        let data = {
-            let mut data = PduVec::new();
-            data.push(function_code)
-                .map_err(|_| ModbusApplicationError::BufferOverflow)?;
-            data
+        let mut pdu = Self {
+            data: PduVec::new(),
         };
 
-        Ok(Self { data })
+        pdu.put_u8(function_code)?;
+
+        Ok(pdu)
     }
 
     pub fn function_code(&self) -> u8 {
@@ -42,14 +60,7 @@ impl Pdu {
     }
 
     fn push(&mut self, buf: u8) -> Result<()> {
-        if self.data.len() < MAX_PDU_SIZE {
-            self.data
-                .push(buf)
-                .map_err(|_| ModbusApplicationError::BufferOverflow)?;
-            Ok(())
-        } else {
-            Err(ModbusApplicationError::NoSpaceLeft.into())
-        }
+        self.data.push(buf).map_err(|_| BufferError::NoSpaceLeft)
     }
 
     pub fn put_u8(&mut self, value: u8) -> Result<()> {
@@ -67,14 +78,13 @@ impl Pdu {
     }
 
     pub fn extend_from_slice(&mut self, buf: &[u8]) -> Result<()> {
-        if self.data.len() + buf.len() <= MAX_PDU_SIZE {
-            self.data
-                .extend_from_slice(buf)
-                .map_err(|_| ModbusApplicationError::BufferOverflow)?;
-            Ok(())
-        } else {
-            Err(ModbusApplicationError::NoSpaceLeft.into())
+        if buf.len() > MAX_PDU_SIZE {
+            return Err(BufferError::BufferOverflow);
         }
+
+        self.data
+            .extend_from_slice(buf)
+            .map_err(|_| BufferError::NoSpaceLeft)
     }
 
     /// Get the value from `data field` at the given index
@@ -102,6 +112,10 @@ impl Pdu {
 
     pub fn as_slice(&self) -> &[u8] {
         &self.data
+    }
+
+    pub fn len(&self) -> usize {
+        self.data.len()
     }
 }
 
