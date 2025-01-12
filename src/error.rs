@@ -1,3 +1,4 @@
+use crate::lib::*;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -6,6 +7,8 @@ pub enum ModbusError {
     ApplicationError(#[from] ModbusApplicationError),
     #[error("Modbus transport error: {0}")]
     TransportError(#[from] ModbusTransportError),
+    #[error("Modbus PDU error: {0}")]
+    PduError(#[from] ModbusPduError),
 }
 
 #[derive(Debug, Error)]
@@ -18,33 +21,26 @@ pub enum ModbusApplicationError {
     UnexpectedCode(u8, u8),
     #[error("Data out of range")]
     OutOfRange,
-    #[error(transparent)]
-    BufferError(#[from] BufferError),
 }
 
-// ToDo. 通信関連のエラーがno_stdで使えないのでアプローチを考える
 #[derive(Debug, Error)]
 pub enum ModbusTransportError {
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "alloc", feature = "std"))]
     #[error(transparent)]
-    IoError(#[from] std::io::Error),
+    TransportError(Box<dyn error::Error + Send + Sync>),
     #[cfg(feature = "rtu")]
     #[error(transparent)]
     RtuError(#[from] ModbusRtuError),
     #[cfg(feature = "tcp")]
     TcpError(#[from] ModbusTcpError),
-    #[error(transparent)]
-    BufferError(#[from] BufferError),
     #[error("Timeout occurred")]
     Timeout,
 }
 
 #[derive(Debug, Error)]
-pub enum BufferError {
+pub enum ModbusPduError {
     #[error("Buffer overflow occurred")]
     BufferOverflow,
-    #[error("Buffer underflow occurred")]
-    BufferUnderflow,
     #[error("No space left in buffer")]
     NoSpaceLeft,
 }

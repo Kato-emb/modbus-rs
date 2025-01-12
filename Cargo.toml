@@ -9,6 +9,7 @@ description = "Modbus `no_std` library for embedded systems"
 default = ["std"]
 
 std = []
+alloc = []
 
 transport = ["std", "tokio"]
 rtu = ["transport", "tokio-serial"]

@@ -1,14 +1,15 @@
 use crate::common::Pdu;
-use crate::error::ModbusTransportError;
 use crate::lib::*;
 
 /// Transport/DataLink layer abstraction
-///
-/// ToDo. 外部ユーザが使う可能性があるため、エラーハンドリングについて考える
 pub trait Transport {
     /// Send a Protocol Data Unit
-    fn send(&mut self, pdu: &Pdu)
-        -> impl future::Future<Output = Result<(), ModbusTransportError>>;
+    fn send(
+        &mut self,
+        pdu: &Pdu,
+    ) -> impl future::Future<Output = Result<(), Box<dyn error::Error + Send + Sync>>>;
     /// Receive a Protocol Data Unit
-    fn recv(&mut self) -> impl future::Future<Output = Result<Pdu, ModbusTransportError>>;
+    fn recv(
+        &mut self,
+    ) -> impl future::Future<Output = Result<Pdu, Box<dyn error::Error + Send + Sync>>>;
 }

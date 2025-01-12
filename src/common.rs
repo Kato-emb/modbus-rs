@@ -1,9 +1,8 @@
-use crate::{error::BufferError, lib::*};
+use crate::{error::ModbusPduError, lib::*};
 
-const MIN_PDU_SIZE: usize = 1;
 const MAX_PDU_SIZE: usize = 253;
 
-type Result<T> = core::result::Result<T, BufferError>;
+type Result<T> = core::result::Result<T, ModbusPduError>;
 type PduVec<T> = heapless::Vec<T, MAX_PDU_SIZE>;
 
 /// Protocol Data Unit
@@ -27,27 +26,14 @@ impl Display for Pdu {
     }
 }
 
-impl TryFrom<&[u8]> for Pdu {
-    type Error = BufferError;
-
-    fn try_from(value: &[u8]) -> core::result::Result<Self, Self::Error> {
-        if value.len() < MIN_PDU_SIZE {
-            return Err(BufferError::BufferUnderflow);
-        }
-
-        let data = PduVec::from_slice(value).map_err(|_| BufferError::BufferOverflow)?;
-        Ok(Self { data })
-    }
-}
-
 impl Pdu {
     pub fn new(function_code: u8) -> Result<Self> {
         let mut pdu = Self {
             data: PduVec::new(),
         };
 
-        pdu.put_u8(function_code)?;
-
+        // Push function code
+        pdu.push(function_code)?;
         Ok(pdu)
     }
 
@@ -59,32 +45,21 @@ impl Pdu {
         &self.data[1..]
     }
 
-    fn push(&mut self, buf: u8) -> Result<()> {
-        self.data.push(buf).map_err(|_| BufferError::NoSpaceLeft)
+    pub fn put_u8(&mut self, src: u8) -> Result<()> {
+        self.push(src)
     }
 
-    pub fn put_u8(&mut self, value: u8) -> Result<()> {
-        self.push(value)
+    pub fn put_u16(&mut self, src: u16) -> Result<()> {
+        self.push((src >> 8) as u8)?;
+        self.push(src as u8)
     }
 
-    pub fn put_u16(&mut self, value: u16) -> Result<()> {
-        self.push((value >> 8) as u8)?;
-        self.push(value as u8)
-    }
-
-    pub fn put_u16_le(&mut self, value: u16) -> Result<()> {
-        self.push(value as u8)?;
-        self.push((value >> 8) as u8)
-    }
-
-    pub fn extend_from_slice(&mut self, buf: &[u8]) -> Result<()> {
-        if buf.len() > MAX_PDU_SIZE {
-            return Err(BufferError::BufferOverflow);
+    pub fn put_slice(&mut self, src: &[u8]) -> Result<()> {
+        if src.len() > MAX_PDU_SIZE - 1 {
+            return Err(ModbusPduError::BufferOverflow);
         }
 
-        self.data
-            .extend_from_slice(buf)
-            .map_err(|_| BufferError::NoSpaceLeft)
+        self.extend_from_slice(src)
     }
 
     /// Get the value from `data field` at the given index
@@ -103,19 +78,22 @@ impl Pdu {
         Some(u16::from_be_bytes([*high, *low]))
     }
 
-    pub fn get_u16_le(&self, l_idx: usize) -> Option<u16> {
-        let low = self.get(l_idx)?;
-        let high = self.get(l_idx + 1)?;
-
-        Some(u16::from_le_bytes([*high, *low]))
-    }
-
     pub fn as_slice(&self) -> &[u8] {
         &self.data
     }
 
     pub fn len(&self) -> usize {
         self.data.len()
+    }
+
+    fn push(&mut self, src: u8) -> Result<()> {
+        self.data.push(src).map_err(|_| ModbusPduError::NoSpaceLeft)
+    }
+
+    fn extend_from_slice(&mut self, src: &[u8]) -> Result<()> {
+        self.data
+            .extend_from_slice(src)
+            .map_err(|_| ModbusPduError::NoSpaceLeft)
     }
 }
 
@@ -145,14 +123,6 @@ mod tests {
         pdu.put_u16(0x0102).unwrap();
         pdu.put_u16(0x0304).unwrap();
         assert_eq!(pdu.data(), &[0x01, 0x02, 0x03, 0x04]);
-    }
-
-    #[test]
-    fn test_model_pdu_data_put_u16_le() {
-        let mut pdu = Pdu::new(1).unwrap();
-        pdu.put_u16_le(0x0102).unwrap();
-        pdu.put_u16_le(0x0304).unwrap();
-        assert_eq!(pdu.data(), &[0x02, 0x01, 0x04, 0x03]);
     }
 
     #[test]
