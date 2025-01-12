@@ -14,6 +14,8 @@ use crate::{
 
 use super::{Adu, Result};
 
+pub use tokio_serial::Parity;
+
 const RTU_BITS_PER_CHAR: u8 = 11;
 
 #[derive(Debug)]
