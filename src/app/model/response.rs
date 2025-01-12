@@ -2,7 +2,7 @@ use super::code::*;
 use super::function::*;
 use super::*;
 use crate::app::types::*;
-use crate::app::Result;
+use crate::Result;
 
 /// Read Coils
 /// ## Code
@@ -13,12 +13,12 @@ use crate::app::Result;
 pub type ReadCoilsResponse = Response<ReadCoils>;
 
 impl Response<ReadCoils> {
-    pub fn new(coil_status: DataVec) -> Result<Self> {
+    pub fn new(coil_status: &[u8]) -> Result<Self> {
         debug_assert!(coil_status.len() <= 250);
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadCoils.into())?;
         pdu.put_u8(coil_status.len() as u8)?;
-        pdu.extend_from_slice(&coil_status)?;
+        pdu.put_slice(&coil_status)?;
 
         Ok(Self {
             inner: pdu,
@@ -54,12 +54,12 @@ impl Display for Response<ReadCoils> {
 pub type ReadDiscreteInputsResponse = Response<ReadDiscreteInputs>;
 
 impl Response<ReadDiscreteInputs> {
-    pub fn new(input_status: DataVec) -> Result<Self> {
+    pub fn new(input_status: &[u8]) -> Result<Self> {
         debug_assert!(input_status.len() <= 250);
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadDiscreteInputs.into())?;
         pdu.put_u8(input_status.len() as u8)?;
-        pdu.extend_from_slice(&input_status)?;
+        pdu.put_slice(input_status)?;
 
         Ok(Self {
             inner: pdu,
@@ -95,12 +95,12 @@ impl Display for Response<ReadDiscreteInputs> {
 pub type ReadHoldingRegistersResponse = Response<ReadHoldingRegisters>;
 
 impl Response<ReadHoldingRegisters> {
-    pub fn new(register_value: DataVec) -> Result<Self> {
+    pub fn new(register_value: &[u8]) -> Result<Self> {
         debug_assert!(register_value.len() <= 250);
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadHoldingRegisters.into())?;
         pdu.put_u8(register_value.len() as u8)?;
-        pdu.extend_from_slice(&register_value)?;
+        pdu.put_slice(register_value)?;
 
         Ok(Self {
             inner: pdu,
@@ -150,12 +150,12 @@ impl Display for Response<ReadHoldingRegisters> {
 pub type ReadInputRegistersResponse = Response<ReadInputRegisters>;
 
 impl Response<ReadInputRegisters> {
-    pub fn new(input_registers: DataVec) -> Result<Self> {
+    pub fn new(input_registers: &[u8]) -> Result<Self> {
         debug_assert!(input_registers.len() <= 250);
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadInputRegisters.into())?;
         pdu.put_u8(input_registers.len() as u8)?;
-        pdu.extend_from_slice(&input_registers)?;
+        pdu.put_slice(input_registers)?;
 
         Ok(Self {
             inner: pdu,
@@ -280,9 +280,9 @@ impl Display for Response<WriteSingleRegister> {
 pub type UserDefinedResponse = Response<UserDefined>;
 
 impl Response<UserDefined> {
-    pub fn new(function_code: u8, data: DataVec) -> Result<Self> {
+    pub fn new(function_code: u8, data: &[u8]) -> Result<Self> {
         let mut pdu = Pdu::new(function_code)?;
-        pdu.extend_from_slice(&data)?;
+        pdu.put_slice(data)?;
 
         Ok(Self {
             inner: pdu,
@@ -296,13 +296,6 @@ impl Response<UserDefined> {
 
     pub fn data(&self) -> &[u8] {
         self.inner.data()
-    }
-
-    pub fn from_pdu(pdu: Pdu) -> Self {
-        Self {
-            inner: pdu,
-            _marker: PhantomData,
-        }
     }
 }
 
@@ -321,8 +314,8 @@ mod tests {
 
     #[test]
     fn test_app_model_rsp_read_coils() {
-        let coil_status = DataVec::from_slice(&[0x12, 0x34]).unwrap();
-        let rsp = ReadCoilsResponse::new(coil_status).unwrap();
+        let coil_status = [0x12, 0x34];
+        let rsp = ReadCoilsResponse::new(&coil_status).unwrap();
         assert_eq!(rsp.byte_count(), Some(0x02));
         let mut coil_status = rsp.coil_status().unwrap();
 
@@ -352,8 +345,8 @@ mod tests {
 
     #[test]
     fn test_app_model_rsp_read_discrete_inputs() {
-        let input_status = DataVec::from_slice(&[0x12, 0x34]).unwrap();
-        let rsp = ReadDiscreteInputsResponse::new(input_status).unwrap();
+        let input_status = [0x12, 0x34];
+        let rsp = ReadDiscreteInputsResponse::new(&input_status).unwrap();
         assert_eq!(rsp.byte_count(), Some(0x02));
         let mut input_status = rsp.input_status().unwrap();
 
@@ -383,8 +376,8 @@ mod tests {
 
     #[test]
     fn test_app_model_rsp_read_holding_registers() {
-        let register_value = DataVec::from_slice(&[0x12, 0x34, 0x56, 0x78]).unwrap();
-        let rsp = ReadHoldingRegistersResponse::new(register_value).unwrap();
+        let register_value = [0x12, 0x34, 0x56, 0x78];
+        let rsp = ReadHoldingRegistersResponse::new(&register_value).unwrap();
         assert_eq!(rsp.byte_count(), Some(0x04));
         let mut register_value = rsp.register_value().unwrap();
 
@@ -399,8 +392,8 @@ mod tests {
 
     #[test]
     fn test_app_model_rsp_read_input_registers() {
-        let input_registers = DataVec::from_slice(&[0x12, 0x34, 0x56, 0x78]).unwrap();
-        let rsp = ReadInputRegistersResponse::new(input_registers).unwrap();
+        let input_registers = [0x12, 0x34, 0x56, 0x78];
+        let rsp = ReadInputRegistersResponse::new(&input_registers).unwrap();
         assert_eq!(rsp.byte_count(), Some(0x04));
         let mut input_registers = rsp.input_registers().unwrap();
 
@@ -422,8 +415,8 @@ mod tests {
 
     #[test]
     fn test_app_model_rsp_user_defined() {
-        let data = DataVec::from_slice(&[0x01, 0x02]).unwrap();
-        let rsp = UserDefinedResponse::new(0x0A, data).unwrap();
+        let data = [0x01, 0x02];
+        let rsp = UserDefinedResponse::new(0x0A, &data).unwrap();
         assert_eq!(rsp.function_code(), 0x0A);
         assert_eq!(rsp.data(), &[0x01, 0x02]);
     }

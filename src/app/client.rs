@@ -1,11 +1,12 @@
-use crate::error::ModbusApplicationError;
+use crate::common::Pdu;
+use crate::error::ModbusTransportError;
 use crate::{interface::Transport, Result};
 
 use super::model::request::*;
 use super::model::response::*;
 use super::model::Response;
 
-/// Modbus client
+/// Modbus client handler
 pub struct Client<T: Transport> {
     transport: T,
 }
@@ -21,8 +22,7 @@ impl<T: Transport> Client<T> {
         quantity_of_coils: u16,
     ) -> Result<ReadCoilsResponse> {
         let read_coils = ReadCoilsRequest::new(starting_address, quantity_of_coils)?;
-        self.transport.send(&read_coils.into_inner()).await?;
-        let response = self.transport.recv().await?;
+        let response = self.send_request(&read_coils.into_inner()).await?;
 
         Ok(Response::try_from(response)?)
     }
@@ -34,10 +34,9 @@ impl<T: Transport> Client<T> {
     ) -> Result<ReadDiscreteInputsResponse> {
         let read_discrete_inputs =
             ReadDiscreteInputsRequest::new(starting_address, quantity_of_inputs)?;
-        self.transport
-            .send(&read_discrete_inputs.into_inner())
+        let response = self
+            .send_request(&read_discrete_inputs.into_inner())
             .await?;
-        let response = self.transport.recv().await?;
 
         Ok(Response::try_from(response)?)
     }
@@ -49,10 +48,9 @@ impl<T: Transport> Client<T> {
     ) -> Result<ReadHoldingRegistersResponse> {
         let read_holding_registers =
             ReadHoldingRegistersRequest::new(starting_address, quantity_of_registers)?;
-        self.transport
-            .send(&read_holding_registers.into_inner())
+        let response = self
+            .send_request(&read_holding_registers.into_inner())
             .await?;
-        let response = self.transport.recv().await?;
 
         Ok(Response::try_from(response)?)
     }
@@ -64,10 +62,9 @@ impl<T: Transport> Client<T> {
     ) -> Result<ReadInputRegistersResponse> {
         let read_input_registers =
             ReadInputRegistersRequest::new(starting_address, quantity_of_registers)?;
-        self.transport
-            .send(&read_input_registers.into_inner())
+        let response = self
+            .send_request(&read_input_registers.into_inner())
             .await?;
-        let response = self.transport.recv().await?;
 
         Ok(Response::try_from(response)?)
     }
@@ -78,8 +75,7 @@ impl<T: Transport> Client<T> {
         output_value: bool,
     ) -> Result<WriteSingleCoilResponse> {
         let write_single_coil = WriteSingleCoilRequest::new(output_address, output_value)?;
-        self.transport.send(&write_single_coil.into_inner()).await?;
-        let response = self.transport.recv().await?;
+        let response = self.send_request(&write_single_coil.into_inner()).await?;
 
         Ok(Response::try_from(response)?)
     }
@@ -91,10 +87,9 @@ impl<T: Transport> Client<T> {
     ) -> Result<WriteSingleRegisterResponse> {
         let write_single_register =
             WriteSingleRegisterRequest::new(register_address, register_value)?;
-        self.transport
-            .send(&write_single_register.into_inner())
+        let response = self
+            .send_request(&write_single_register.into_inner())
             .await?;
-        let response = self.transport.recv().await?;
 
         Ok(Response::try_from(response)?)
     }
@@ -105,18 +100,23 @@ impl<T: Transport> Client<T> {
         data: &[u8],
     ) -> Result<UserDefinedResponse> {
         let user_defined = UserDefinedRequest::new(function_code, data)?;
-        self.transport.send(&user_defined.into_inner()).await?;
-        let response = self.transport.recv().await?;
+        let response = self.send_request(&user_defined.into_inner()).await?;
 
-        if function_code != response.function_code() {
-            return Err(ModbusApplicationError::UnexpectedCode(
-                function_code,
-                response.function_code(),
-            )
-            .into());
-        }
+        Ok(Response::try_from((response, function_code))?)
+    }
 
-        Ok(UserDefinedResponse::from_pdu(response))
+    async fn send_request(&mut self, pdu: &Pdu) -> Result<Pdu> {
+        self.transport
+            .send(pdu)
+            .await
+            .map_err(|e| ModbusTransportError::TransportError(e.into()))?;
+        let response = self
+            .transport
+            .recv()
+            .await
+            .map_err(|e| ModbusTransportError::TransportError(e.into()))?;
+
+        Ok(response)
     }
 }
 

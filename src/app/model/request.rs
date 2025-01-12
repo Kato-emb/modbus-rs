@@ -1,8 +1,8 @@
 use super::code::*;
 use super::function::*;
 use super::*;
-use crate::app::Result;
 use crate::error::ModbusApplicationError;
+use crate::Result;
 
 /// Read Coils
 /// ## Code
@@ -261,7 +261,7 @@ pub type UserDefinedRequest = Request<UserDefined>;
 impl Request<UserDefined> {
     pub fn new(function_code: u8, data: &[u8]) -> Result<Self> {
         let mut pdu = Pdu::new(function_code)?;
-        pdu.extend_from_slice(data)?;
+        pdu.put_slice(data)?;
 
         Ok(Self {
             inner: pdu,

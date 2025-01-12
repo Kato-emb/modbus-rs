@@ -1,12 +1,5 @@
 use crate::lib::*;
 
-const MAX_DATA_SIZE: usize = 252;
-
-/// PDU data unit vector
-///
-/// This is a heapless vector with a maximum size of 252 bytes
-pub type DataVec = heapless::Vec<u8, MAX_DATA_SIZE>;
-
 /// Iterator over bits in a byte array
 pub struct BitSet<'a> {
     bytes: &'a [u8],

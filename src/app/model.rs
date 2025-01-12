@@ -1,17 +1,15 @@
+use function::{Function, UserDefined};
+
 use crate::{common::Pdu, error::ModbusApplicationError, lib::*};
 
 pub mod code;
 pub mod request;
 pub mod response;
 
-pub trait Function {
-    fn function_code() -> u8;
-}
-
 /// Modbus request implementation
 #[derive(Clone, PartialEq)]
 pub struct Request<T> {
-    pub(super) inner: Pdu,
+    inner: Pdu,
     _marker: PhantomData<T>,
 }
 
@@ -34,13 +32,7 @@ impl<T: Function> TryFrom<Pdu> for Request<T> {
     type Error = ModbusApplicationError;
 
     fn try_from(value: Pdu) -> Result<Self, Self::Error> {
-        if value.function_code() != T::function_code() {
-            return Err(ModbusApplicationError::UnexpectedCode(
-                value.function_code(),
-                T::function_code(),
-            )
-            .into());
-        }
+        check_function_code(&value, T::function_code())?;
 
         Ok(Self {
             inner: value,
@@ -49,10 +41,23 @@ impl<T: Function> TryFrom<Pdu> for Request<T> {
     }
 }
 
+impl TryFrom<(Pdu, u8)> for Request<UserDefined> {
+    type Error = ModbusApplicationError;
+
+    fn try_from((pdu, function_code): (Pdu, u8)) -> Result<Self, Self::Error> {
+        check_function_code(&pdu, function_code)?;
+
+        Ok(Self {
+            inner: pdu,
+            _marker: PhantomData,
+        })
+    }
+}
+
 /// Modbus response implementation
 #[derive(Clone, PartialEq)]
 pub struct Response<T> {
-    pub(super) inner: Pdu,
+    inner: Pdu,
     _marker: PhantomData<T>,
 }
 
@@ -75,13 +80,7 @@ impl<T: Function> TryFrom<Pdu> for Response<T> {
     type Error = ModbusApplicationError;
 
     fn try_from(value: Pdu) -> Result<Self, Self::Error> {
-        if value.function_code() != T::function_code() {
-            return Err(ModbusApplicationError::UnexpectedCode(
-                value.function_code(),
-                T::function_code(),
-            )
-            .into());
-        }
+        check_function_code(&value, T::function_code())?;
 
         Ok(Self {
             inner: value,
@@ -90,9 +89,36 @@ impl<T: Function> TryFrom<Pdu> for Response<T> {
     }
 }
 
+impl TryFrom<(Pdu, u8)> for Response<UserDefined> {
+    type Error = ModbusApplicationError;
+
+    fn try_from((pdu, function_code): (Pdu, u8)) -> Result<Self, Self::Error> {
+        check_function_code(&pdu, function_code)?;
+
+        Ok(Self {
+            inner: pdu,
+            _marker: PhantomData,
+        })
+    }
+}
+
+fn check_function_code(pdu: &Pdu, function_code: u8) -> Result<(), ModbusApplicationError> {
+    if pdu.function_code() != function_code {
+        return Err(
+            ModbusApplicationError::UnexpectedCode(pdu.function_code(), function_code).into(),
+        );
+    }
+
+    Ok(())
+}
+
 /// Function code descriptions
 mod function {
-    use super::{code::PublicFunctionCode, Function};
+    use super::code::PublicFunctionCode;
+
+    pub trait Function {
+        fn function_code() -> u8;
+    }
 
     /// Read Coils
     ///
@@ -178,6 +204,18 @@ mod function {
         }
     }
 
+    /// Write Single Coil
+    ///
+    /// This function code is used to write a single output to either ON or OFF in a remote device.
+    ///
+    /// # Code
+    /// * Function Code : `0x05`
+    /// # Request
+    /// * Output Address : `u16`
+    /// * Output Value : `bool`
+    /// # Response
+    /// * Output Address : `u16`
+    /// * Output Value : `bool`
     #[derive(Debug, Clone, PartialEq)]
     pub struct WriteSingleCoil;
 
