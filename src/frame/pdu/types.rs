@@ -86,7 +86,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_types_bitset_next() {
+    fn test_frame_pdu_types_bitset_next() {
         let bytes = [0b0001_0001, 0b0010_0010];
         let mut bitset = BitSet {
             bytes: &bytes,
@@ -117,7 +117,7 @@ mod tests {
     }
 
     #[test]
-    fn test_types_register_slice_next() {
+    fn test_frame_pdu_types_register_slice_next() {
         let bytes = [0x01, 0x02, 0x03, 0x04];
         let mut register = RegisterSlice {
             bytes: &bytes,

@@ -1,8 +1,5 @@
-use super::code::*;
-use super::function::*;
 use super::*;
-use crate::error::ModbusApplicationError;
-use crate::Result;
+use crate::error::ModbusFrameError;
 
 /// Read Coils
 /// ## Code
@@ -13,9 +10,9 @@ use crate::Result;
 pub type ReadCoilsRequest = Request<ReadCoils>;
 
 impl Request<ReadCoils> {
-    pub fn new(starting_address: u16, quantity_of_coils: u16) -> Result<Self> {
+    pub fn new(starting_address: u16, quantity_of_coils: u16) -> Result<Self, ModbusFrameError> {
         if !(1..=2000).contains(&quantity_of_coils) {
-            return Err(ModbusApplicationError::OutOfRange.into());
+            return Err(ModbusPduError::OutOfRange.into());
         }
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadCoils.into())?;
@@ -29,11 +26,11 @@ impl Request<ReadCoils> {
     }
 
     pub fn starting_address(&self) -> Option<u16> {
-        self.inner.get_u16(0)
+        self.inner.read_u16(0)
     }
 
     pub fn quantity_of_coils(&self) -> Option<u16> {
-        self.inner.get_u16(2)
+        self.inner.read_u16(2)
     }
 }
 
@@ -55,9 +52,9 @@ impl Display for Request<ReadCoils> {
 pub type ReadDiscreteInputsRequest = Request<ReadDiscreteInputs>;
 
 impl Request<ReadDiscreteInputs> {
-    pub fn new(starting_address: u16, quantity_of_inputs: u16) -> Result<Self> {
+    pub fn new(starting_address: u16, quantity_of_inputs: u16) -> Result<Self, ModbusFrameError> {
         if !(1..=2000).contains(&quantity_of_inputs) {
-            return Err(ModbusApplicationError::OutOfRange.into());
+            return Err(ModbusPduError::OutOfRange.into());
         }
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadDiscreteInputs.into())?;
@@ -71,11 +68,11 @@ impl Request<ReadDiscreteInputs> {
     }
 
     pub fn starting_address(&self) -> Option<u16> {
-        self.inner.get_u16(0)
+        self.inner.read_u16(0)
     }
 
     pub fn quantity_of_inputs(&self) -> Option<u16> {
-        self.inner.get_u16(2)
+        self.inner.read_u16(2)
     }
 }
 
@@ -97,9 +94,12 @@ impl Display for Request<ReadDiscreteInputs> {
 pub type ReadHoldingRegistersRequest = Request<ReadHoldingRegisters>;
 
 impl Request<ReadHoldingRegisters> {
-    pub fn new(starting_address: u16, quantity_of_registers: u16) -> Result<Self> {
+    pub fn new(
+        starting_address: u16,
+        quantity_of_registers: u16,
+    ) -> Result<Self, ModbusFrameError> {
         if !(1..=125).contains(&quantity_of_registers) {
-            return Err(ModbusApplicationError::OutOfRange.into());
+            return Err(ModbusPduError::OutOfRange.into());
         }
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadHoldingRegisters.into())?;
@@ -113,11 +113,11 @@ impl Request<ReadHoldingRegisters> {
     }
 
     pub fn starting_address(&self) -> Option<u16> {
-        self.inner.get_u16(0)
+        self.inner.read_u16(0)
     }
 
     pub fn quantity_of_registers(&self) -> Option<u16> {
-        self.inner.get_u16(2)
+        self.inner.read_u16(2)
     }
 }
 
@@ -139,9 +139,12 @@ impl Display for Request<ReadHoldingRegisters> {
 pub type ReadInputRegistersRequest = Request<ReadInputRegisters>;
 
 impl Request<ReadInputRegisters> {
-    pub fn new(starting_address: u16, quantity_of_input_registers: u16) -> Result<Self> {
+    pub fn new(
+        starting_address: u16,
+        quantity_of_input_registers: u16,
+    ) -> Result<Self, ModbusFrameError> {
         if !(1..=125).contains(&quantity_of_input_registers) {
-            return Err(ModbusApplicationError::OutOfRange.into());
+            return Err(ModbusPduError::OutOfRange.into());
         }
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadInputRegisters.into())?;
@@ -155,11 +158,11 @@ impl Request<ReadInputRegisters> {
     }
 
     pub fn starting_address(&self) -> Option<u16> {
-        self.inner.get_u16(0)
+        self.inner.read_u16(0)
     }
 
     pub fn quantity_of_input_registers(&self) -> Option<u16> {
-        self.inner.get_u16(2)
+        self.inner.read_u16(2)
     }
 }
 
@@ -184,7 +187,7 @@ impl Display for Request<ReadInputRegisters> {
 pub type WriteSingleCoilRequest = Request<WriteSingleCoil>;
 
 impl Request<WriteSingleCoil> {
-    pub fn new(output_address: u16, output_value: bool) -> Result<Self> {
+    pub fn new(output_address: u16, output_value: bool) -> Result<Self, ModbusFrameError> {
         let mut pdu = Pdu::new(PublicFunctionCode::WriteSingleCoil.into())?;
         pdu.put_u16(output_address)?;
         pdu.put_u16(if output_value { 0xFF00 } else { 0x0000 })?;
@@ -196,11 +199,11 @@ impl Request<WriteSingleCoil> {
     }
 
     pub fn output_address(&self) -> Option<u16> {
-        self.inner.get_u16(0)
+        self.inner.read_u16(0)
     }
 
     pub fn output_value(&self) -> Option<bool> {
-        self.inner.get_u16(2).map(|v| v == 0xFF00)
+        self.inner.read_u16(2).map(|v| v == 0xFF00)
     }
 }
 
@@ -222,7 +225,7 @@ impl Display for Request<WriteSingleCoil> {
 pub type WriteSingleRegisterRequest = Request<WriteSingleRegister>;
 
 impl Request<WriteSingleRegister> {
-    pub fn new(register_address: u16, register_value: u16) -> Result<Self> {
+    pub fn new(register_address: u16, register_value: u16) -> Result<Self, ModbusFrameError> {
         let mut pdu = Pdu::new(PublicFunctionCode::WriteSingleRegister.into())?;
         pdu.put_u16(register_address)?;
         pdu.put_u16(register_value)?;
@@ -234,11 +237,11 @@ impl Request<WriteSingleRegister> {
     }
 
     pub fn register_address(&self) -> Option<u16> {
-        self.inner.get_u16(0)
+        self.inner.read_u16(0)
     }
 
     pub fn register_value(&self) -> Option<u16> {
-        self.inner.get_u16(2)
+        self.inner.read_u16(2)
     }
 }
 
@@ -259,7 +262,7 @@ impl Display for Request<WriteSingleRegister> {
 pub type UserDefinedRequest = Request<UserDefined>;
 
 impl Request<UserDefined> {
-    pub fn new(function_code: u8, data: &[u8]) -> Result<Self> {
+    pub fn new(function_code: u8, data: &[u8]) -> Result<Self, ModbusFrameError> {
         let mut pdu = Pdu::new(function_code)?;
         pdu.put_slice(data)?;
 
@@ -269,7 +272,7 @@ impl Request<UserDefined> {
         })
     }
 
-    pub fn function_code(&self) -> u8 {
+    pub fn function_code(&self) -> Option<u8> {
         self.inner.function_code()
     }
 
@@ -292,75 +295,75 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_app_model_req_read_coils_valid() {
+    fn test_frame_pdu_function_req_read_coils_valid() {
         let req = ReadCoilsRequest::new(0x0001, 0x0002).unwrap();
         assert_eq!(req.starting_address(), Some(0x0001));
         assert_eq!(req.quantity_of_coils(), Some(0x0002));
     }
 
     #[test]
-    fn test_app_model_req_read_coils_out_of_range() {
+    fn test_frame_pdu_function_req_read_coils_out_of_range() {
         assert!(ReadCoilsRequest::new(0x0001, 0x0000).is_err());
         assert!(ReadCoilsRequest::new(0x0001, 0x07D1).is_err());
     }
 
     #[test]
-    fn test_app_model_req_read_discrete_inputs_vaild() {
+    fn test_frame_pdu_function_req_read_discrete_inputs_vaild() {
         let req = ReadDiscreteInputsRequest::new(0x0001, 0x0002).unwrap();
         assert_eq!(req.starting_address(), Some(0x0001));
         assert_eq!(req.quantity_of_inputs(), Some(0x0002));
     }
 
     #[test]
-    fn test_app_model_req_read_discrete_inputs_out_of_range() {
+    fn test_frame_pdu_function_req_read_discrete_inputs_out_of_range() {
         assert!(ReadDiscreteInputsRequest::new(0x0001, 0x0000).is_err());
         assert!(ReadDiscreteInputsRequest::new(0x0001, 0x07D1).is_err());
     }
 
     #[test]
-    fn test_app_model_req_read_holding_registers_vaild() {
+    fn test_frame_pdu_function_req_read_holding_registers_vaild() {
         let req = ReadHoldingRegistersRequest::new(0x0001, 0x0002).unwrap();
         assert_eq!(req.starting_address(), Some(0x0001));
         assert_eq!(req.quantity_of_registers(), Some(0x0002));
     }
 
     #[test]
-    fn test_app_model_req_read_holding_registers_out_of_range() {
+    fn test_frame_pdu_function_req_read_holding_registers_out_of_range() {
         assert!(ReadHoldingRegistersRequest::new(0x0001, 0x0000).is_err());
         assert!(ReadHoldingRegistersRequest::new(0x0001, 0x007E).is_err());
     }
 
     #[test]
-    fn test_app_model_req_read_input_registers_vaild() {
+    fn test_frame_pdu_function_req_read_input_registers_vaild() {
         let req = ReadInputRegistersRequest::new(0x0001, 0x0002).unwrap();
         assert_eq!(req.starting_address(), Some(0x0001));
         assert_eq!(req.quantity_of_input_registers(), Some(0x0002));
     }
 
     #[test]
-    fn test_app_model_req_read_input_registers_out_of_range() {
+    fn test_frame_pdu_function_req_read_input_registers_out_of_range() {
         assert!(ReadInputRegistersRequest::new(0x0001, 0x0000).is_err());
         assert!(ReadInputRegistersRequest::new(0x0001, 0x007E).is_err());
     }
 
     #[test]
-    fn test_model_data_req_write_single_coil_valid() {
+    fn test_frame_pdu_function_req_write_single_coil_valid() {
         let req = WriteSingleCoilRequest::new(0x0001, true).unwrap();
         assert_eq!(req.output_address(), Some(0x0001));
         assert_eq!(req.output_value(), Some(true));
     }
 
     #[test]
-    fn test_model_data_req_write_single_register_valid() {
+    fn test_frame_pdu_function_req_write_single_register_valid() {
         let req = WriteSingleRegisterRequest::new(0x0001, 0x0002).unwrap();
         assert_eq!(req.register_address(), Some(0x0001));
         assert_eq!(req.register_value(), Some(0x0002));
     }
 
     #[test]
-    fn test_model_data_req_user_defined() {
+    fn test_frame_pdu_function_req_user_defined() {
         let req = UserDefinedRequest::new(0x0A, &[0x01, 0x02]).unwrap();
-        assert_eq!(req.function_code(), 0x0A);
+        assert_eq!(req.function_code(), Some(0x0A));
         assert_eq!(req.data(), &[0x01, 0x02]);
     }
 }

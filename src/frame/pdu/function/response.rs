@@ -1,8 +1,8 @@
-use super::code::*;
-use super::function::*;
 use super::*;
-use crate::app::types::*;
-use crate::Result;
+use crate::{
+    error::ModbusFrameError,
+    frame::pdu::types::{BitSet, RegisterSlice},
+};
 
 /// Read Coils
 /// ## Code
@@ -13,7 +13,7 @@ use crate::Result;
 pub type ReadCoilsResponse = Response<ReadCoils>;
 
 impl Response<ReadCoils> {
-    pub fn new(coil_status: &[u8]) -> Result<Self> {
+    pub fn new(coil_status: &[u8]) -> Result<Self, ModbusFrameError> {
         debug_assert!(coil_status.len() <= 250);
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadCoils.into())?;
@@ -27,7 +27,7 @@ impl Response<ReadCoils> {
     }
 
     pub fn byte_count(&self) -> Option<u8> {
-        self.inner.get_u8(0)
+        self.inner.read_u8(0)
     }
 
     pub fn coil_status(&self) -> Option<BitSet<'_>> {
@@ -54,7 +54,7 @@ impl Display for Response<ReadCoils> {
 pub type ReadDiscreteInputsResponse = Response<ReadDiscreteInputs>;
 
 impl Response<ReadDiscreteInputs> {
-    pub fn new(input_status: &[u8]) -> Result<Self> {
+    pub fn new(input_status: &[u8]) -> Result<Self, ModbusFrameError> {
         debug_assert!(input_status.len() <= 250);
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadDiscreteInputs.into())?;
@@ -68,7 +68,7 @@ impl Response<ReadDiscreteInputs> {
     }
 
     pub fn byte_count(&self) -> Option<u8> {
-        self.inner.get_u8(0)
+        self.inner.read_u8(0)
     }
 
     pub fn input_status(&self) -> Option<BitSet<'_>> {
@@ -95,7 +95,7 @@ impl Display for Response<ReadDiscreteInputs> {
 pub type ReadHoldingRegistersResponse = Response<ReadHoldingRegisters>;
 
 impl Response<ReadHoldingRegisters> {
-    pub fn new(register_value: &[u8]) -> Result<Self> {
+    pub fn new(register_value: &[u8]) -> Result<Self, ModbusFrameError> {
         debug_assert!(register_value.len() <= 250);
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadHoldingRegisters.into())?;
@@ -109,7 +109,7 @@ impl Response<ReadHoldingRegisters> {
     }
 
     pub fn byte_count(&self) -> Option<u8> {
-        self.inner.get_u8(0)
+        self.inner.read_u8(0)
     }
 
     pub fn register_value(&self) -> Option<RegisterSlice<'_>> {
@@ -125,7 +125,7 @@ impl Response<ReadHoldingRegisters> {
 
         // Check if the index is within the bounds
         if start < byte_count as usize {
-            self.inner.get_u16(start)
+            self.inner.read_u16(start)
         } else {
             None
         }
@@ -150,7 +150,7 @@ impl Display for Response<ReadHoldingRegisters> {
 pub type ReadInputRegistersResponse = Response<ReadInputRegisters>;
 
 impl Response<ReadInputRegisters> {
-    pub fn new(input_registers: &[u8]) -> Result<Self> {
+    pub fn new(input_registers: &[u8]) -> Result<Self, ModbusFrameError> {
         debug_assert!(input_registers.len() <= 250);
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadInputRegisters.into())?;
@@ -164,7 +164,7 @@ impl Response<ReadInputRegisters> {
     }
 
     pub fn byte_count(&self) -> Option<u8> {
-        self.inner.get_u8(0)
+        self.inner.read_u8(0)
     }
 
     pub fn input_registers(&self) -> Option<RegisterSlice<'_>> {
@@ -180,7 +180,7 @@ impl Response<ReadInputRegisters> {
 
         // Check if the index is within the bounds
         if start < byte_count as usize {
-            self.inner.get_u16(start)
+            self.inner.read_u16(start)
         } else {
             None
         }
@@ -205,7 +205,7 @@ impl Display for Response<ReadInputRegisters> {
 pub type WriteSingleCoilResponse = Response<WriteSingleCoil>;
 
 impl Response<WriteSingleCoil> {
-    pub fn new(output_address: u16, output_value: bool) -> Result<Self> {
+    pub fn new(output_address: u16, output_value: bool) -> Result<Self, ModbusFrameError> {
         let mut pdu = Pdu::new(PublicFunctionCode::WriteSingleCoil.into())?;
         pdu.put_u16(output_address)?;
         pdu.put_u16(if output_value { 0xFF00 } else { 0x0000 })?;
@@ -217,11 +217,11 @@ impl Response<WriteSingleCoil> {
     }
 
     pub fn output_address(&self) -> Option<u16> {
-        self.inner.get_u16(0)
+        self.inner.read_u16(0)
     }
 
     pub fn output_value(&self) -> Option<bool> {
-        self.inner.get_u16(2).map(|value| value == 0xFF00)
+        self.inner.read_u16(2).map(|value| value == 0xFF00)
     }
 }
 
@@ -243,7 +243,7 @@ impl Display for Response<WriteSingleCoil> {
 pub type WriteSingleRegisterResponse = Response<WriteSingleRegister>;
 
 impl Response<WriteSingleRegister> {
-    pub fn new(register_address: u16, register_value: u16) -> Result<Self> {
+    pub fn new(register_address: u16, register_value: u16) -> Result<Self, ModbusFrameError> {
         let mut pdu = Pdu::new(PublicFunctionCode::WriteSingleRegister.into())?;
         pdu.put_u16(register_address)?;
         pdu.put_u16(register_value)?;
@@ -255,11 +255,11 @@ impl Response<WriteSingleRegister> {
     }
 
     pub fn register_address(&self) -> Option<u16> {
-        self.inner.get_u16(0)
+        self.inner.read_u16(0)
     }
 
     pub fn register_value(&self) -> Option<u16> {
-        self.inner.get_u16(2)
+        self.inner.read_u16(2)
     }
 }
 
@@ -280,7 +280,7 @@ impl Display for Response<WriteSingleRegister> {
 pub type UserDefinedResponse = Response<UserDefined>;
 
 impl Response<UserDefined> {
-    pub fn new(function_code: u8, data: &[u8]) -> Result<Self> {
+    pub fn new(function_code: u8, data: &[u8]) -> Result<Self, ModbusFrameError> {
         let mut pdu = Pdu::new(function_code)?;
         pdu.put_slice(data)?;
 
@@ -290,7 +290,7 @@ impl Response<UserDefined> {
         })
     }
 
-    pub fn function_code(&self) -> u8 {
+    pub fn function_code(&self) -> Option<u8> {
         self.inner.function_code()
     }
 
@@ -313,7 +313,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_app_model_rsp_read_coils() {
+    fn test_frame_pdu_fanction_rsp_read_coils() {
         let coil_status = [0x12, 0x34];
         let rsp = ReadCoilsResponse::new(&coil_status).unwrap();
         assert_eq!(rsp.byte_count(), Some(0x02));
@@ -344,7 +344,7 @@ mod tests {
     }
 
     #[test]
-    fn test_app_model_rsp_read_discrete_inputs() {
+    fn test_frame_pdu_fanction_rsp_read_discrete_inputs() {
         let input_status = [0x12, 0x34];
         let rsp = ReadDiscreteInputsResponse::new(&input_status).unwrap();
         assert_eq!(rsp.byte_count(), Some(0x02));
@@ -375,7 +375,7 @@ mod tests {
     }
 
     #[test]
-    fn test_app_model_rsp_read_holding_registers() {
+    fn test_frame_pdu_fanction_rsp_read_holding_registers() {
         let register_value = [0x12, 0x34, 0x56, 0x78];
         let rsp = ReadHoldingRegistersResponse::new(&register_value).unwrap();
         assert_eq!(rsp.byte_count(), Some(0x04));
@@ -391,7 +391,7 @@ mod tests {
     }
 
     #[test]
-    fn test_app_model_rsp_read_input_registers() {
+    fn test_frame_pdu_fanction_rsp_read_input_registers() {
         let input_registers = [0x12, 0x34, 0x56, 0x78];
         let rsp = ReadInputRegistersResponse::new(&input_registers).unwrap();
         assert_eq!(rsp.byte_count(), Some(0x04));
@@ -407,17 +407,17 @@ mod tests {
     }
 
     #[test]
-    fn test_app_model_rsp_wite_single_register() {
+    fn test_frame_pdu_fanction_rsp_wite_single_register() {
         let rsp = WriteSingleRegisterResponse::new(0x0102, 0x0304).unwrap();
         assert_eq!(rsp.register_address(), Some(0x0102));
         assert_eq!(rsp.register_value(), Some(0x0304));
     }
 
     #[test]
-    fn test_app_model_rsp_user_defined() {
+    fn test_frame_pdu_fanction_rsp_user_defined() {
         let data = [0x01, 0x02];
         let rsp = UserDefinedResponse::new(0x0A, &data).unwrap();
-        assert_eq!(rsp.function_code(), 0x0A);
+        assert_eq!(rsp.function_code(), Some(0x0A));
         assert_eq!(rsp.data(), &[0x01, 0x02]);
     }
 }

@@ -11,9 +11,8 @@ default = ["std"]
 std = []
 alloc = []
 
-transport = ["std", "tokio"]
-rtu = ["transport", "tokio-serial"]
-tcp = ["transport", "tokio/net"]
+rtu = ["tokio", "tokio-serial"]
+tcp = ["tokio", "tokio/net"]
 
 [dependencies]
 heapless = { version = "0.8.0" }

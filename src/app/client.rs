@@ -1,10 +1,11 @@
-use crate::common::Pdu;
-use crate::error::ModbusTransportError;
-use crate::{interface::Transport, Result};
+use crate::error::{ModbusError, ModbusTransportError};
+use crate::frame::pdu::function::Response;
+use crate::frame::pdu::Pdu;
+use crate::transport::Transport;
 
-use super::model::request::*;
-use super::model::response::*;
-use super::model::Response;
+use crate::frame::pdu::function::request::*;
+use crate::frame::pdu::function::response::*;
+use crate::Result;
 
 /// Modbus client handler
 pub struct Client<T: Transport> {
@@ -24,7 +25,7 @@ impl<T: Transport> Client<T> {
         let read_coils = ReadCoilsRequest::new(starting_address, quantity_of_coils)?;
         let response = self.send_request(&read_coils.into_inner()).await?;
 
-        Ok(Response::try_from(response)?)
+        Ok(Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))?)
     }
 
     pub async fn read_discrete_inputs(
@@ -38,7 +39,7 @@ impl<T: Transport> Client<T> {
             .send_request(&read_discrete_inputs.into_inner())
             .await?;
 
-        Ok(Response::try_from(response)?)
+        Ok(Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))?)
     }
 
     pub async fn read_holding_registers(
@@ -52,7 +53,7 @@ impl<T: Transport> Client<T> {
             .send_request(&read_holding_registers.into_inner())
             .await?;
 
-        Ok(Response::try_from(response)?)
+        Ok(Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))?)
     }
 
     pub async fn read_input_registers(
@@ -66,7 +67,7 @@ impl<T: Transport> Client<T> {
             .send_request(&read_input_registers.into_inner())
             .await?;
 
-        Ok(Response::try_from(response)?)
+        Ok(Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))?)
     }
 
     pub async fn write_single_coil(
@@ -77,7 +78,7 @@ impl<T: Transport> Client<T> {
         let write_single_coil = WriteSingleCoilRequest::new(output_address, output_value)?;
         let response = self.send_request(&write_single_coil.into_inner()).await?;
 
-        Ok(Response::try_from(response)?)
+        Ok(Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))?)
     }
 
     pub async fn write_single_register(
@@ -91,7 +92,7 @@ impl<T: Transport> Client<T> {
             .send_request(&write_single_register.into_inner())
             .await?;
 
-        Ok(Response::try_from(response)?)
+        Ok(Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))?)
     }
 
     pub async fn user_defined(
@@ -102,7 +103,8 @@ impl<T: Transport> Client<T> {
         let user_defined = UserDefinedRequest::new(function_code, data)?;
         let response = self.send_request(&user_defined.into_inner()).await?;
 
-        Ok(Response::try_from((response, function_code))?)
+        Ok(Response::try_from((response, function_code))
+            .map_err(|e| ModbusError::FrameError(e.into()))?)
     }
 
     async fn send_request(&mut self, pdu: &Pdu) -> Result<Pdu> {

@@ -1,4 +1,4 @@
-use crate::{error::ModbusApplicationError, lib::*};
+use crate::{error::ModbusPduError, lib::*};
 
 /// Modbus function code
 #[derive(Clone, Copy, PartialEq)]
@@ -63,7 +63,7 @@ pub enum PublicFunctionCode {
 }
 
 impl TryFrom<u8> for PublicFunctionCode {
-    type Error = ModbusApplicationError;
+    type Error = ModbusPduError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
@@ -86,7 +86,7 @@ impl TryFrom<u8> for PublicFunctionCode {
             0x17 => Ok(Self::ReadWriteMultipleRegisters),
             0x18 => Ok(Self::ReadFifoQueue),
             0x2B => Ok(Self::EncapsulatedInterfaceTransport),
-            _ => Err(ModbusApplicationError::UndefinedFunctionCode(value)),
+            _ => Err(ModbusPduError::UndefinedFunctionCode(value)),
         }
     }
 }
@@ -120,7 +120,7 @@ pub enum ExceptionCode {
 }
 
 impl TryFrom<u8> for ExceptionCode {
-    type Error = ModbusApplicationError;
+    type Error = ModbusPduError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
@@ -133,7 +133,7 @@ impl TryFrom<u8> for ExceptionCode {
             0x08 => Ok(Self::MemoryParityError),
             0x0A => Ok(Self::GatewayPathUnavailable),
             0x0B => Ok(Self::GatewayTargetDeviceFailedToRespond),
-            _ => Err(ModbusApplicationError::UndefinedExceptionCode(value)),
+            _ => Err(ModbusPduError::UndefinedExceptionCode(value)),
         }
     }
 }
