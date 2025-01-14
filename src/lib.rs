@@ -15,6 +15,7 @@ mod lib {
     pub use self::core::fmt::{self, Debug, Display};
     pub use self::core::iter;
     pub use self::core::marker::PhantomData;
+    pub use self::core::ops::{Deref, DerefMut};
     pub use self::core::result;
 
     #[cfg(all(feature = "alloc", not(feature = "std")))]

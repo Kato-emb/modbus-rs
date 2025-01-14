@@ -22,9 +22,22 @@ impl<const N: usize> Debug for DataUnit<N> {
     }
 }
 
+impl<const N: usize> Default for DataUnit<N> {
+    fn default() -> Self {
+        Self {
+            data: [0; N],
+            position: 0,
+        }
+    }
+}
+
 impl<const N: usize> DataUnit<N> {
     pub fn len(&self) -> usize {
         self.position
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.position == 0
     }
 
     pub fn clear(&mut self) {
@@ -33,6 +46,10 @@ impl<const N: usize> DataUnit<N> {
 
     pub fn as_slice(&self) -> &[u8] {
         &self.data[..self.position]
+    }
+
+    pub fn as_mut(&mut self) -> &mut [u8] {
+        &mut self.data[self.position..]
     }
 
     pub fn put_u8(&mut self, src: u8) -> result::Result<(), BufferError> {
@@ -69,6 +86,10 @@ impl<const N: usize> DataUnit<N> {
         let high = self.get(index + 1)?;
 
         Some(u16::from_le_bytes([*low, *high]))
+    }
+
+    pub unsafe fn set_len(&mut self, len: usize) {
+        self.position = len;
     }
 
     fn push(&mut self, src: u8) -> result::Result<(), BufferError> {

@@ -13,7 +13,22 @@ const MAX_PDU_SIZE: usize = 253;
 /// # Structure
 /// * Code : `u8`
 /// * Data : `[u8; N]` (MAX : 252 bytes)
-pub type Pdu = DataUnit<MAX_PDU_SIZE>;
+#[derive(Debug, Clone, PartialEq)]
+pub struct Pdu(DataUnit<MAX_PDU_SIZE>);
+
+impl Deref for Pdu {
+    type Target = DataUnit<MAX_PDU_SIZE>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Pdu {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl Display for Pdu {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -23,10 +38,7 @@ impl Display for Pdu {
 
 impl Pdu {
     pub fn new(function_code: u8) -> Result<Self, ModbusFrameError> {
-        let mut pdu = Pdu {
-            data: [0; MAX_PDU_SIZE],
-            position: 0,
-        };
+        let mut pdu = Pdu(DataUnit::default());
 
         // Push function code
         pdu.push(function_code)?;

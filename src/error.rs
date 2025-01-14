@@ -29,10 +29,11 @@ pub enum ModbusTransportError {
 pub enum ModbusFrameError {
     #[error("Modbus PDU error: {0}")]
     PduError(#[from] ModbusPduError),
-    #[error("Modbus ADU error: {0}")]
-    AduError(#[from] ModbusAduError),
     #[error("Modbus buffer error: {0}")]
     BufferError(#[from] BufferError),
+    #[cfg(feature = "rtu")]
+    #[error("Modbus RTU error: {0}")]
+    RtuError(#[from] ModbusRtuError),
 }
 
 #[derive(Debug, Error)]
@@ -46,9 +47,6 @@ pub enum ModbusPduError {
     #[error("Data out of range")]
     OutOfRange,
 }
-
-#[derive(Debug, Error)]
-pub enum ModbusAduError {}
 
 #[derive(Debug, Error)]
 pub enum BufferError {
@@ -65,6 +63,8 @@ pub enum ModbusRtuError {
     InvalidSlaveAddress(u8),
     #[error("CRC validation failure")]
     CrcValidationFailure,
+    #[error("Invalid frame length")]
+    InvalidFrameLength,
 }
 
 #[cfg(feature = "tcp")]
