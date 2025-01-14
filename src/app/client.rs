@@ -121,34 +121,3 @@ impl<T: Transport> Client<T> {
         Ok(response)
     }
 }
-
-#[cfg(feature = "rtu")]
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_app_client_read_registers() {
-        use crate::transport::rtu::SerialTransport;
-
-        let mut transport = SerialTransport::builder("/dev/ttyCH341USB0", 115_200)
-            .set_parity(tokio_serial::Parity::None)
-            .build()
-            .unwrap();
-
-        transport.set_slave_addr(0x50).unwrap();
-
-        let mut client = Client::new(transport);
-
-        let response = client
-            .read_holding_registers(0x30, 13)
-            .await
-            .expect("Failed to read holding registers");
-
-        println!("{}", response);
-
-        let response = client.write_single_register(0x1F, 0x0004).await.unwrap();
-
-        println!("{}", response);
-    }
-}
