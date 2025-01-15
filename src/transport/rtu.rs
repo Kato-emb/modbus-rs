@@ -94,10 +94,11 @@ impl Transport for SerialTransport {
         self.buffer.clear();
         let t3_5_timer = sleep(Duration::from_secs(86400));
         tokio::pin!(t3_5_timer);
+        let mut len = 0;
 
         loop {
             tokio::select! {
-                res = self.port.read(self.buffer.as_mut()) => {
+                res = self.port.read(&mut self.buffer.as_slice_mut()[len..]) => {
                     let current_time = Instant::now();
 
                     match res {
@@ -110,8 +111,8 @@ impl Transport for SerialTransport {
                                 }
                             }
 
-                            let len = self.buffer.len() + n;
-                            unsafe {self.buffer.set_len(len)};
+                            len += n;
+                            self.buffer.advance(len);
 
                             if let Ok(pdu) = RtuFrameHandler::parse_frame(self.buffer.as_slice(), self.ctx.slave_addr) {
                                 return Ok(pdu);
