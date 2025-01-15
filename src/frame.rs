@@ -48,6 +48,10 @@ impl<const N: usize> DataUnit<N> {
         &self.data[..self.position]
     }
 
+    pub fn as_slice_mut(&mut self) -> &mut [u8] {
+        &mut self.data
+    }
+
     pub fn put_u8(&mut self, src: u8) -> result::Result<(), BufferError> {
         self.push(src)
     }
@@ -89,8 +93,8 @@ impl<const N: usize> DataUnit<N> {
     /// # Safety
     ///
     /// This function is unsafe because it does not check if the length is within the bounds of the buffer.
-    pub fn set_len(&mut self, len: usize) {
-        self.position = len;
+    pub fn advance(&mut self, count: usize) {
+        self.position = (self.position + count).min(N);
     }
 
     fn push(&mut self, src: u8) -> result::Result<(), BufferError> {
