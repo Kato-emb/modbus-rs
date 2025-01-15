@@ -18,7 +18,7 @@ impl Response<ReadCoils> {
 
         let mut pdu = Pdu::new(PublicFunctionCode::ReadCoils.into())?;
         pdu.put_u8(coil_status.len() as u8)?;
-        pdu.put_slice(&coil_status)?;
+        pdu.put_slice(coil_status)?;
 
         Ok(Self {
             inner: pdu,

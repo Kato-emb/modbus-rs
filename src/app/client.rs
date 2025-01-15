@@ -25,7 +25,7 @@ impl<T: Transport> Client<T> {
         let read_coils = ReadCoilsRequest::new(starting_address, quantity_of_coils)?;
         let response = self.send_request(&read_coils.into_inner()).await?;
 
-        Ok(Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))?)
+        Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))
     }
 
     pub async fn read_discrete_inputs(
@@ -39,7 +39,7 @@ impl<T: Transport> Client<T> {
             .send_request(&read_discrete_inputs.into_inner())
             .await?;
 
-        Ok(Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))?)
+        Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))
     }
 
     pub async fn read_holding_registers(
@@ -53,7 +53,7 @@ impl<T: Transport> Client<T> {
             .send_request(&read_holding_registers.into_inner())
             .await?;
 
-        Ok(Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))?)
+        Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))
     }
 
     pub async fn read_input_registers(
@@ -67,7 +67,7 @@ impl<T: Transport> Client<T> {
             .send_request(&read_input_registers.into_inner())
             .await?;
 
-        Ok(Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))?)
+        Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))
     }
 
     pub async fn write_single_coil(
@@ -78,7 +78,7 @@ impl<T: Transport> Client<T> {
         let write_single_coil = WriteSingleCoilRequest::new(output_address, output_value)?;
         let response = self.send_request(&write_single_coil.into_inner()).await?;
 
-        Ok(Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))?)
+        Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))
     }
 
     pub async fn write_single_register(
@@ -92,7 +92,7 @@ impl<T: Transport> Client<T> {
             .send_request(&write_single_register.into_inner())
             .await?;
 
-        Ok(Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))?)
+        Response::try_from(response).map_err(|e| ModbusError::FrameError(e.into()))
     }
 
     pub async fn user_defined(
@@ -111,12 +111,12 @@ impl<T: Transport> Client<T> {
         self.transport
             .send(pdu)
             .await
-            .map_err(|e| ModbusTransportError::TransportError(e.into()))?;
+            .map_err(|e| ModbusTransportError::TransportError(e))?;
         let response = self
             .transport
             .recv()
             .await
-            .map_err(|e| ModbusTransportError::TransportError(e.into()))?;
+            .map_err(|e| ModbusTransportError::TransportError(e))?;
 
         Ok(response)
     }
