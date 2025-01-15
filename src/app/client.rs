@@ -103,20 +103,19 @@ impl<T: Transport> Client<T> {
         let user_defined = UserDefinedRequest::new(function_code, data)?;
         let response = self.send_request(&user_defined.into_inner()).await?;
 
-        Ok(Response::try_from((response, function_code))
-            .map_err(|e| ModbusError::FrameError(e.into()))?)
+        Response::try_from((response, function_code)).map_err(|e| ModbusError::FrameError(e.into()))
     }
 
     async fn send_request(&mut self, pdu: &Pdu) -> Result<Pdu> {
         self.transport
             .send(pdu)
             .await
-            .map_err(|e| ModbusTransportError::TransportError(e))?;
+            .map_err(ModbusTransportError::TransportError)?;
         let response = self
             .transport
             .recv()
             .await
-            .map_err(|e| ModbusTransportError::TransportError(e))?;
+            .map_err(ModbusTransportError::TransportError)?;
 
         Ok(response)
     }
