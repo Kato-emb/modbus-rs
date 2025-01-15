@@ -18,4 +18,8 @@ pub trait Transport {
     fn recv(
         &mut self,
     ) -> impl future::Future<Output = Result<Pdu, Box<dyn error::Error + Send + Sync>>>;
+    /// Flush the transport
+    fn flush(
+        &mut self,
+    ) -> impl future::Future<Output = Result<(), Box<dyn error::Error + Send + Sync>>>;
 }

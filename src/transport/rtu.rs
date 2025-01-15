@@ -139,6 +139,11 @@ impl Transport for SerialTransport {
             }
         }
     }
+
+    async fn flush(&mut self) -> Result<(), Box<dyn error::Error + Send + Sync>> {
+        self.port.flush().await?;
+        Ok(())
+    }
 }
 
 pub struct SerialTransportBuilder {
