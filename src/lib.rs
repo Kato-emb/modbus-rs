@@ -36,4 +36,5 @@ pub mod frame;
 #[cfg(any(feature = "alloc", feature = "std"))]
 pub mod transport;
 
+#[cfg(any(feature = "alloc", feature = "std"))]
 type Result<T> = core::result::Result<T, error::ModbusError>;
