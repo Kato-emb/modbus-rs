@@ -1,0 +1,29 @@
+[package]
+name = "modbus"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ryouhei Kato <r-kato@musen.co.jp>"]
+description = "Modbus `no_std` library for embedded systems"
+
+[features]
+default = ["std"]
+
+std = []
+alloc = []
+
+rtu = ["tokio", "tokio-serial"]
+tcp = ["tokio", "tokio/net"]
+
+[dependencies]
+heapless = { version = "0.8.0" }
+thiserror = { version = "2", default-features = false }
+
+tokio = { version = "1.42.0", default-features = false, optional = true, features = [
+    "time",
+    "io-util",
+    "macros",
+    "rt-multi-thread",
+] }
+tokio-serial = { version = "5.4.5", default-features = false, optional = true }
+
+[dev-dependencies]
